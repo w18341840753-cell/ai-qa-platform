@@ -142,8 +142,20 @@ aqa/
     ├── build.py         构建：打包 zip / docker / mock
     └── bugtracker.py    缺陷：本地 JSON / GitHub Issue（按证据键去重）
 tests/                   42 个测试（契约 / 判定 / 生成 / 端到端）
+tools/make_report.py     把任意一次运行渲染成单文件 HTML 报告（离线可看）
 docs/ARCHITECTURE.md     架构设计与技术决策
+docs/showcase.html       真模型一次完整运行的回放报告（浏览器直接打开）
 ```
+
+## 看见结果
+
+不想翻 JSON 产物，可以生成一份可分享的 HTML 报告页：
+
+```bash
+python tools/make_report.py   # 自动挑最近一次真模型运行
+```
+
+渲染后的页面在 `docs/showcase.html`，单文件、无外部依赖，双击即看。
 
 ## 产物
 
