@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ai-qa-platform · 运行回放 20261108-182052-1d453e</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A0C10; --panel:#101419; --panel-2:#151A21; --line:#222A35;
+  --fg:#E6EDF3; --dim:#9AA7B4; --mute:#69788A;
+  --accent:#4C9AFF; --pass:#3FB950; --fail:#F85149; --warn:#D29922; --purple:#A371F7;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Consolas,"Liberation Mono",monospace;
+}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+body{
+  background:var(--bg); color:var(--fg); line-height:1.7; font-size:15px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.top{position:sticky;top:0;z-index:20;background:rgba(10,12,16,.86);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1180px;margin:0 auto;padding:13px 32px;display:flex;align-items:center;gap:11px}
+.mark{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,#4C9AFF,#A371F7);flex:none;
+  box-shadow:0 0 0 1px rgba(255,255,255,.08) inset}
+.brand{font-weight:600;letter-spacing:-.01em}
+.brand span{color:var(--mute);font-weight:400}
+.top-links{margin-left:auto;display:flex;gap:18px;font-size:13px;color:var(--dim)}
+.top-links a{color:var(--dim)}
+.top-links a:hover{color:var(--fg);text-decoration:none}
+
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px 100px}
+
+.hero{padding:66px 0 34px;position:relative}
+.hero::before{content:"";position:absolute;left:-6%;right:-6%;top:-140px;height:440px;pointer-events:none;
+  background:radial-gradient(52% 62% at 26% 0%,rgba(76,154,255,.14),transparent 72%)}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:11.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--dim);border:1px solid var(--line);background:var(--panel);
+  padding:5px 11px;border-radius:999px;font-family:var(--mono)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--pass);box-shadow:0 0 8px rgba(63,185,80,.7)}
+h1{font-size:clamp(30px,4.3vw,48px);line-height:1.14;letter-spacing:-.028em;font-weight:700;margin:22px 0 16px}
+h1 em{font-style:normal;background:linear-gradient(96deg,#4C9AFF,#A371F7 62%);-webkit-background-clip:text;
+  background-clip:text;color:transparent}
+.lede{font-size:16.5px;color:var(--dim);max-width:790px}
+.lede b{color:var(--fg);font-weight:600}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:38px 0 0}
+.metric{background:var(--panel);padding:17px 19px}
+.metric b{display:block;font-family:var(--mono);font-size:25px;line-height:1.25;font-weight:600;
+  font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.metric.fail b{color:var(--fail)} .metric.pass b{color:var(--pass)} .metric.warn b{color:var(--warn)}
+.metric span{font-size:11.5px;color:var(--mute);letter-spacing:.02em}
+
+.highlights{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:14px}
+.hl{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:14px 16px;
+  font-size:13.5px;color:var(--dim);display:flex;gap:10px}
+.hl i{flex:none;font-style:normal;font-family:var(--mono);font-size:11px;color:var(--accent);
+  border:1px solid rgba(76,154,255,.3);background:rgba(76,154,255,.08);border-radius:5px;
+  padding:1px 6px;height:20px;line-height:18px;margin-top:2px}
+
+section{padding-top:52px;margin-top:52px;border-top:1px solid var(--line)}
+.sec-h{display:flex;align-items:baseline;gap:13px}
+.sec-n{font-family:var(--mono);font-size:11.5px;color:var(--accent);letter-spacing:.12em}
+.sec-h h2{font-size:23px;font-weight:650;letter-spacing:-.015em}
+.sec-desc{color:var(--dim);max-width:850px;margin:9px 0 26px;font-size:14.5px}
+
+.flow{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--line)}
+.step{display:grid;grid-template-columns:38px minmax(120px,1.15fr) minmax(0,2fr) 84px;
+  align-items:center;gap:16px;background:var(--panel);padding:11px 18px;
+  border-bottom:1px solid rgba(34,42,53,.55)}
+.step:last-child{border-bottom:0}
+.step .idx{font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+.step .nm{font-size:13.5px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step .nm i{font-style:normal;color:var(--mute);font-family:var(--mono);font-size:11px;margin-left:8px}
+.track{height:6px;border-radius:3px;background:#1B2129;overflow:hidden}
+.track i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#2F6FD0,#4C9AFF)}
+.track i.hot{background:linear-gradient(90deg,#A371F7,#4C9AFF)}
+.step .tm{font-family:var(--mono);font-size:12px;color:var(--dim);text-align:right;
+  font-variant-numeric:tabular-nums}
+
+.split{display:grid;grid-template-columns:1.05fr .95fr;gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+.card h3{font-size:14px;font-weight:620;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card h3 span{font-family:var(--mono);font-size:11px;color:var(--mute);font-weight:400}
+
+.kv{display:flex;justify-content:space-between;gap:14px;padding:7px 0;font-size:13px;
+  border-bottom:1px dashed rgba(34,42,53,.85)}
+.kv:last-child{border-bottom:0}
+.kv span{color:var(--mute);flex:none}
+.kv b{font-weight:500;font-family:var(--mono);font-size:12.5px;text-align:right;word-break:break-all}
+
+.tree{font-family:var(--mono);font-size:12.5px;line-height:1.85;color:var(--dim);
+  background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:13px 15px;margin-top:12px}
+.tree div{white-space:nowrap}
+.tree em{font-style:normal;color:var(--mute)}
+.tree b{color:#7FB2FF;font-weight:400}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{font-family:var(--mono);font-size:11.5px;padding:2px 8px;border-radius:5px;
+  border:1px solid var(--line);background:var(--panel-2);color:var(--dim)}
+.chip.ok{color:var(--pass);border-color:rgba(63,185,80,.32);background:rgba(63,185,80,.08)}
+.chip.bad{color:var(--fail);border-color:rgba(248,81,73,.32);background:rgba(248,81,73,.08)}
+.chip.info{color:var(--accent);border-color:rgba(76,154,255,.3);background:rgba(76,154,255,.07)}
+
+.req{font-size:13.2px;color:var(--dim);line-height:1.85;white-space:pre-wrap}
+.inject{margin-top:14px;border-left:2px solid var(--purple);background:rgba(163,113,247,.07);
+  border-radius:0 8px 8px 0;padding:12px 15px;font-size:12.8px;color:#C7B6F0}
+.inject b{color:#D9CBF7;display:block;margin-bottom:5px;font-size:11.5px;letter-spacing:.06em;
+  text-transform:uppercase;font-family:var(--mono)}
+
+.table-wrap{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13.2px}
+thead th{text-align:left;font-weight:600;font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--mute);padding:11px 14px;background:var(--panel-2);border-bottom:1px solid var(--line);
+  white-space:nowrap}
+tbody td{padding:12px 14px;border-bottom:1px solid rgba(34,42,53,.6);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tr.case-row{cursor:pointer}
+tr.case-row:hover td{background:rgba(76,154,255,.045)}
+tr.case-row td:first-child{font-family:var(--mono);font-size:12px;color:var(--dim);white-space:nowrap}
+.ti{font-weight:500;color:var(--fg);display:block;margin-bottom:3px}
+.sub{font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+.badge{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 7px;
+  border-radius:5px;letter-spacing:.03em;white-space:nowrap}
+.badge.pass{color:var(--pass);background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.3)}
+.badge.fail{color:var(--fail);background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.3)}
+.badge.inc{color:var(--warn);background:rgba(210,153,34,.12);border:1px solid rgba(210,153,34,.3)}
+.badge.p0{color:#FFA198;background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.22)}
+.badge.p1{color:var(--dim);border:1px solid var(--line);background:var(--panel-2)}
+.by{font-family:var(--mono);font-size:11px;padding:1px 6px;border-radius:4px;border:1px solid var(--line)}
+.by.rule{color:var(--purple);border-color:rgba(163,113,247,.3);background:rgba(163,113,247,.08)}
+.by.state{color:var(--accent);border-color:rgba(76,154,255,.3);background:rgba(76,154,255,.08)}
+.by.vision{color:#39C5CF;border-color:rgba(57,197,207,.3);background:rgba(57,197,207,.08)}
+.cmp{display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-family:var(--mono);font-size:11.5px}
+.cmp s{text-decoration:none;color:var(--mute)}
+.cmp .eq{color:var(--pass)} .cmp .ne{color:var(--fail)}
+tr.detail td{background:#0C0F14;padding:0}
+.detail-in{padding:14px 16px 16px}
+.detail-in .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--mute);
+  text-transform:uppercase;margin:10px 0 5px}
+pre{font-family:var(--mono);font-size:11.8px;line-height:1.72;color:#B9C6D4;background:#070A0E;
+  border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow:auto;max-height:230px;
+  white-space:pre;tab-size:2}
+pre::-webkit-scrollbar{width:9px;height:9px}
+pre::-webkit-scrollbar-thumb{background:#243040;border-radius:5px}
+
+.bug{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:11px}
+.bug-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.bug-id{font-family:var(--mono);font-size:11.5px;color:var(--mute)}
+.bug-t{font-size:14.5px;font-weight:600;line-height:1.5;margin-bottom:10px}
+.bug-m{display:flex;flex-wrap:wrap;gap:16px;font-family:var(--mono);font-size:11.5px;color:var(--mute);
+  margin-bottom:12px}
+.bug-m b{color:var(--dim);font-weight:400}
+details{margin-top:4px}
+details summary{cursor:pointer;font-size:12.5px;color:var(--accent);list-style:none;user-select:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸ ";color:var(--mute)}
+details[open] summary::before{content:"▾ "}
+details p{font-size:13px;color:var(--dim);margin-top:10px;line-height:1.85}
+.fix{margin-top:10px;border-left:2px solid var(--pass);background:rgba(63,185,80,.06);
+  border-radius:0 7px 7px 0;padding:9px 13px;font-size:12.8px;color:#A8D8B4}
+
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.shot{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.shot-h{padding:11px 15px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:9px;
+  font-size:12.5px;color:var(--dim)}
+.shot pre{border:0;border-radius:0;max-height:none;background:#070A0E}
+
+.stack{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.st{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:17px 19px}
+.st h4{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);font-weight:600;
+  margin-bottom:8px;font-family:var(--mono)}
+.st p{font-size:13.2px;color:var(--dim)}
+.st p b{color:var(--fg);font-weight:600}
+
+.cmds{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 0;margin-top:12px}
+.cmd{display:grid;grid-template-columns:minmax(0,1fr) 1.5fr;gap:18px;padding:11px 20px;
+  border-bottom:1px solid rgba(34,42,53,.6);align-items:center}
+.cmd:last-child{border-bottom:0}
+.cmd code{font-family:var(--mono);font-size:12.5px;color:#9CD3FF;background:#070A0E;
+  border:1px solid var(--line);border-radius:6px;padding:4px 9px;display:inline-block}
+.cmd span{font-size:12.8px;color:var(--mute)}
+
+footer{margin-top:64px;padding-top:26px;border-top:1px solid var(--line);display:flex;
+  flex-wrap:wrap;gap:18px;justify-content:space-between;font-size:12.5px;color:var(--mute)}
+footer code{font-family:var(--mono);font-size:12px;color:var(--dim);word-break:break-all}
+
+@media (max-width:860px){
+  .split,.shots{grid-template-columns:1fr}
+  .wrap{padding:0 18px 70px}
+  .top-in{padding:12px 18px}
+  .step{grid-template-columns:30px 1fr 68px;gap:10px}
+  .step .track{display:none}
+  .cmd{grid-template-columns:1fr;gap:6px}
+  .top-links{gap:12px}
+}
+</style>
+</head>
+<body>
+<div class="top"><div class="top-in">
+  <div class="mark"></div>
+  <div class="brand">ai-qa-platform <span>/ 运行回放</span></div>
+  <div class="top-links">
+    <a href="https://github.com/w18341840753-cell/ai-qa-platform" target="_blank" rel="noopener">GitHub</a>
+    <a href="#pipeline">流水线</a>
+    <a href="#cases">用例</a>
+    <a href="#bugs">缺陷</a>
+  </div>
+</div></div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow"><span class="dot"></span>真模型 · 2026-11-08 18:20 · 20261108-182052-1d453e</div>
+    <h1>一句需求进去，<em>测试报告</em>出来</h1>
+    <p class="lede">
+      这是 <b>ai-qa-platform</b> 的一次真实运行回放：AI 先写出一套智能中控屏固件（8 个文件），
+      平台自己打包、部署到模拟设备、设计 10 条用例、真实执行、逐条判定、最后按根因建缺陷。
+      下面每一个数字都来自磁盘上的运行产物，不是手写的示意图。
+    </p>
+    <div class="metrics"><div class="metric "><b>10</b><span>流水线层数</span></div><div class="metric "><b>10</b><span>用例总数</span></div><div class="metric fail"><b>30%</b><span>通过率</span></div><div class="metric fail"><b>3</b><span>唯一缺陷</span></div><div class="metric "><b>¥0.37</b><span>模型花费</span></div><div class="metric "><b>5.1 min</b><span>端到端耗时</span></div></div>
+    <div class="highlights"><div class="hl"><i>01</i><div><b>10 条用例全部由日志信号与状态契约直接判定</b>，视觉模型一次都没用到 —— 确定性的路走完，才考虑花钱看图。</div></div><div class="hl"><i>02</i><div><b>生成阶段独占 3.0 min</b>，占全程 60%。让 AI 写 8 个文件是这条流水线上最贵的动作。</div></div><div class="hl"><i>03</i><div><b>契约自检 通过</b>：模型写的固件输出 <code style="font-family:var(--mono);font-size:12px">screen/online/version/ok</code>，判定层才敢按状态下结论。</div></div></div>
+  </div>
+
+  <section id="pipeline">
+    <div class="sec-h"><span class="sec-n">01</span><h2>十层流水线</h2></div>
+    <p class="sec-desc">
+      一次运行的真实耗时分布。柱条长度按阶段耗时归一化 —— 一眼能看出钱和时间花在哪：
+      生成代码是长输出任务（3.0 min），
+      其余九层加起来不到 2.1 min。
+    </p>
+    <div class="flow"><div class="step"><div class="idx">01</div><div class="nm">AI 生成产品代码<i>product</i></div><div class="track"><i class="hot" style="width:100.0%"></i></div><div class="tm">3.0 min</div></div><div class="step"><div class="idx">02</div><div class="nm">触发<i>trigger</i></div><div class="track"><i class="" style="width:3.0%"></i></div><div class="tm">2 ms</div></div><div class="step"><div class="idx">03</div><div class="nm">构建<i>build</i></div><div class="track"><i class="" style="width:3.0%"></i></div><div class="tm">20 ms</div></div><div class="step"><div class="idx">04</div><div class="nm">部署到设备<i>deploy</i></div><div class="track"><i class="" style="width:3.0%"></i></div><div class="tm">26 ms</div></div><div class="step"><div class="idx">05</div><div class="nm">AI 设计测试<i>plan</i></div><div class="track"><i class="" style="width:5.2%"></i></div><div class="tm">9.5 s</div></div><div class="step"><div class="idx">06</div><div class="nm">执行<i>execute</i></div><div class="track"><i class="" style="width:3.1%"></i></div><div class="tm">5.6 s</div></div><div class="step"><div class="idx">07</div><div class="nm">AI 判定<i>judge</i></div><div class="track"><i class="" style="width:51.9%"></i></div><div class="tm">1.6 min</div></div><div class="step"><div class="idx">08</div><div class="nm">出报告<i>report</i></div><div class="track"><i class="" style="width:3.0%"></i></div><div class="tm">3 ms</div></div><div class="step"><div class="idx">09</div><div class="nm">自动建 bug<i>bugfile</i></div><div class="track"><i class="" style="width:7.7%"></i></div><div class="tm">14.0 s</div></div><div class="step"><div class="idx">10</div><div class="nm">确认闭环<i>confirm</i></div><div class="track"><i class="" style="width:3.0%"></i></div><div class="tm">4 ms</div></div></div>
+  </section>
+
+  <section>
+    <div class="sec-h"><span class="sec-n">02</span><h2>被测产品：AI 现场写出来的固件</h2></div>
+    <p class="sec-desc">
+      平台不只测别人的代码 —— 它可以让模型从一句需求直接写出被测试对象，然后立刻拿去跑测试。
+      这样「改需求 → 出新固件 → 自动回归」能在一个循环里完成。
+    </p>
+    <div class="split">
+      <div class="card">
+        <h3>生成结果 <span>api · 8 files</span></h3>
+        <div class="kv"><span>产品名</span><b>smart-panel</b></div>
+        <div class="kv"><span>产物目录</span><b>runs/20261108-182052-1d453e/product</b></div>
+        <div class="kv"><span>状态契约自检</span><b style="color:var(--pass)">
+          通过（exit=0）</b></div>
+        <div class="kv"><span>自修复轮次</span><b>0 个文件被回改</b></div>
+        <div class="chips" style="margin-top:12px"><span class="chip ok">screen=home</span><span class="chip ok">online=False</span><span class="chip ok">version=1.0.0</span><span class="chip ok">ok=True</span></div>
+        <div class="tree"><div><em>device/</em></div><div>&nbsp;&nbsp;&nbsp;&nbsp;<b>__init__.py</b></div><div>&nbsp;&nbsp;&nbsp;&nbsp;<b>cloud.py</b></div><div>&nbsp;&nbsp;&nbsp;&nbsp;<b>config.py</b></div><div>&nbsp;&nbsp;&nbsp;&nbsp;<b>logger.py</b></div><div>&nbsp;&nbsp;&nbsp;&nbsp;<b>ota.py</b></div><div>&nbsp;&nbsp;&nbsp;&nbsp;<b>state_machine.py</b></div><div>&nbsp;&nbsp;&nbsp;&nbsp;<b>wifi.py</b></div><div><b>main.py</b></div></div>
+      </div>
+      <div class="card">
+        <h3>交给模型的需求原文 <span>prompt</span></h3>
+        <div class="req">为智能中控屏设备开发固件：设备上电后进入主界面；支持 Wi-Fi 配网并连接云端；支持 OTA 远程升级并生效；断网后能自动重连。需提供可在本地运行的模拟实现，输出串口日志与最终状态，供自动化测试驱动。</div>
+        <div class="inject"><b>演示注入 · 故意留 bug</b>这个版本是待测版本，请保留以下两处真实缺陷，不要修复、也不要在日志里声明这是缺陷：
+1) 配网：不区分正确/错误凭据，等待云端 ACK 10 秒后直接 system_reset 重启；
+2) OTA：打印 ota_done，但从不真正切换固件版本，version 始终为初始版本。</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="cases">
+    <div class="sec-h"><span class="sec-n">03</span><h2>逐条判定：期望 vs 设备实际</h2></div>
+    <p class="sec-desc">
+      AI 设计用例时就给出可机器比对的 <code style="font-family:var(--mono);font-size:13px;color:#9CD3FF">expect_state</code>，
+      执行后拿设备上报的真实状态对照。<b>state 6 条、rule 4 条</b>。
+      点任意一行可以展开它的串口日志与判定理由。
+    </p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>用例</th><th>标题 / 场景</th><th>优先级</th><th>期望 → 实际</th><th>判定</th><th>来源</th>
+        </tr></thead>
+        <tbody><tr class="case-row"><td>TC-01</td><td><span class="ti">冷启动进入待配网状态并完成自检</span><span class="sub">scenario=boot · 期望 设备正常启动并停留在待配网界面，未出现异常重启。</span></td><td><span class="badge p0">P0</span></td><td><div class="cmp"><span class="ne">screen provision → home</span><span class="eq">online False = False</span></div></td><td><span class="badge fail">FAIL</span> <span class="sub">0.90</span></td><td><span class="by state">state</span></td></tr><tr class="detail" hidden><td colspan="5"><div class="detail-in"><div class="lbl">判定理由</div><div style="font-size:13px;color:var(--dim)">设备状态与用例预期不一致：screen 期望 provision 实际 home</div><div class="lbl">证据</div><div style="font-family:var(--mono);font-size:12px;color:#9CD3FF">STATE screen=home online=False version=1.0.0 ok=True</div><div class="lbl">根因</div><div style="font-size:13px;color:var(--dim)">UI 启动状态机的初始屏幕被硬编码/默认置为 home，缺少“未配网则进入配网引导”的判断分支。冷启动流程中 [ui] 直接输出 screen=home，在 wifi state=disconnected、cloud state=offline 的情况下未触发任何 provision 状态迁移，说明配网入口逻辑（判断 NVS 中是否存有 SSID/配网标志位 → 跳转 provision）在启动序列中被遗漏或条件判断恒为 false（如 provisioned 标志默认初始化为 true，或配网状态读取早于 NVS 初始化完成而返回默认值）。</div><div class="lbl">串口日志</div><pre>[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [ui] screen=home ready
+[uart] [boot] ready
+STATE {&quot;screen&quot;: &quot;home&quot;, &quot;online&quot;: false, &quot;version&quot;: &quot;1.0.0&quot;, &quot;ok&quot;: true}</pre></div></td></tr><tr class="case-row"><td>TC-02</td><td><span class="ti">正确凭据配网成功并上线</span><span class="sub">scenario=provision · 期望 设备使用正确凭据完成配网并成功接入网络。</span></td><td><span class="badge p0">P0</span></td><td><div class="cmp"><span class="eq">screen home = home</span><span class="ne">online True → False</span><span class="eq">ok True = True</span></div></td><td><span class="badge fail">FAIL</span> <span class="sub">0.95</span></td><td><span class="by rule">rule</span></td></tr><tr class="detail" hidden><td colspan="5"><div class="detail-in"><div class="lbl">判定理由</div><div style="font-size:13px;color:var(--dim)">串口日志命中失败信号：system_reset</div><div class="lbl">证据</div><div style="font-family:var(--mono);font-size:12px;color:#9CD3FF">RULE_HIT=system_reset</div><div class="lbl">根因</div><div style="font-size:13px;color:var(--dim)">固件在配网流程完成后无条件执行软复位：日志中 prov done 后立即出现 system_reset reason=provision_done，导致设备重启，测试用例命中失败信号 system_reset，无法保持配网成功后的在线状态。另 cloud ack 在 wait_ack timeout=10.0s 的边界时刻 elapsed=10.000s 才收到，存在超时边界竞争，可能加剧流程异常。</div><div class="lbl">串口日志</div><pre>[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [prov] start transport=ble name=Panel-7F3C
+[uart] [wifi] scan start band=2.4G,5G
+[uart] [wifi] scan done found=3
+[uart] [wifi] ap ssid=SmartHome-5G rssi=-47 auth=WPA2
+[uart] [wifi] ap ssid=SmartHome-2.4G rssi=-58 auth=WPA2
+[uart] [wifi] ap ssid=TP-LINK_9F2A rssi=-71 auth=WPA2
+[uart] [prov] credentials received ssid=SmartHome-5G psk=********
+[uart] [wifi] connect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=868add267da7
+[uart] [cloud] wait_ack timeout=10.0s
+[uart] [cloud] ack received elapsed=10.000s
+[uart] [prov] done device_id=panel-7f3c9a21
+[uart] [sys] system_reset reason=provision_done
+[uart] [boot] power_on reset_reason=software_reset boot_count=2
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [boot] ready
+STATE {&quot;screen&quot;: &quot;home&quot;, &quot;online&quot;: false, &quot;version&quot;: &quot;1.0.0&quot;, &quot;ok&quot;: true}</pre></div></td></tr><tr class="case-row"><td>TC-03</td><td><span class="ti">错误凭据配网被拒绝并保持离线</span><span class="sub">scenario=provision · 期望 错误凭据无法上线，设备给出配网失败提示并回退到待配网界面。</span></td><td><span class="badge p0">P0</span></td><td><div class="cmp"><span class="ne">screen provision → home</span><span class="eq">online False = False</span><span class="ne">ok False → True</span></div></td><td><span class="badge fail">FAIL</span> <span class="sub">0.95</span></td><td><span class="by rule">rule</span></td></tr><tr class="detail" hidden><td colspan="5"><div class="detail-in"><div class="lbl">判定理由</div><div style="font-size:13px;color:var(--dim)">串口日志命中失败信号：system_reset</div><div class="lbl">证据</div><div style="font-family:var(--mono);font-size:12px;color:#9CD3FF">RULE_HIT=system_reset</div><div class="lbl">根因</div><div style="font-size:13px;color:var(--dim)">用例注入的“错误凭据”未真正生效，设备仍用有效 PSK 完成联网，因此配网链路全程成功并在结束时软复位；system_reset 被子串口检查判为失败信号。日志显示 credentials received 后 assoc_ok（WPA2 关联成功）、DHCP 获取到 192.168.31.86、TLS 握手成功、auth accepted，说明 PSK 校验通过（错误凭据不可能通过 WPA2 关联），即该步骤下发的是正确 psk，或设备复用了 NVRAM 中上一次配网保存的有效凭据，未进入“错误凭据被拒绝”的分支。另一处可疑缺陷：cloud ack received elapsed=10.000s 恰等于 wait_ack timeout=10.0s，属于超时边界处理错误：本应判超时失败，却判为成功，并继续触发 prov done 与 reboot。</div><div class="lbl">串口日志</div><pre>[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [prov] start transport=ble name=Panel-7F3C
+[uart] [wifi] scan start band=2.4G,5G
+[uart] [wifi] scan done found=3
+[uart] [wifi] ap ssid=SmartHome-5G rssi=-47 auth=WPA2
+[uart] [wifi] ap ssid=SmartHome-2.4G rssi=-58 auth=WPA2
+[uart] [wifi] ap ssid=TP-LINK_9F2A rssi=-71 auth=WPA2
+[uart] [prov] credentials received ssid=SmartHome-5G psk=********
+[uart] [wifi] connect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=86df944813d3
+[uart] [cloud] wait_ack timeout=10.0s
+[uart] [cloud] ack received elapsed=10.000s
+[uart] [prov] done device_id=panel-7f3c9a21
+[uart] [sys] system_reset reason=provision_done
+[uart] [boot] power_on reset_reason=software_reset boot_count=2
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [boot] ready
+STATE {&quot;screen&quot;: &quot;home&quot;, &quot;online&quot;: false, &quot;version&quot;: &quot;1.0.0&quot;, &quot;ok&quot;: true}</pre></div></td></tr><tr class="case-row"><td>TC-04</td><td><span class="ti">OTA 正常升级到新固件</span><span class="sub">scenario=ota · 期望 升级流程完整走通，设备重启后运行新固件并重新上线。</span></td><td><span class="badge p0">P0</span></td><td><div class="cmp"><span class="eq">online True = True</span><span class="eq">ok True = True</span></div></td><td><span class="badge pass">PASS</span> <span class="sub">0.90</span></td><td><span class="by state">state</span></td></tr><tr class="detail" hidden><td colspan="5"><div class="detail-in"><div class="lbl">判定理由</div><div style="font-size:13px;color:var(--dim)">设备状态与用例预期一致</div><div class="lbl">证据</div><div style="font-family:var(--mono);font-size:12px;color:#9CD3FF">STATE screen=home online=True version=1.0.0 ok=True</div><div class="lbl">串口日志</div><pre>[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [wifi] reconnect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=8eb1a700fc58
+[uart] [cloud] state=online heartbeat=30s
+[uart] [ota] check_update current=1.0.0
+[uart] [ota] manifest version=1.1.0 size=1048576 crc32=0x8a41f3c2
+[uart] [ota] download start url=https://ota.example.com/fw/panel-1.1.0.bin chunk=4096
+[uart] [ota] download progress=20%
+[uart] [ota] download progress=40%
+[uart] [ota] download progress=60%
+[uart] [ota] download progress=80%
+[uart] [ota] download progress=100%
+[uart] [ota] verify signature=ok crc32=ok target_slot=b
+[uart] [ota] install slot=b offsets=0x00000000..0x00100000
+[uart] [ota] ota_done
+[uart] [fw] running version=1.0.0 build=2024.05.11
+[uart] [ui] screen=home
+STATE {&quot;screen&quot;: &quot;home&quot;, &quot;online&quot;: true, &quot;version&quot;: &quot;1.0.0&quot;, &quot;ok&quot;: true}</pre></div></td></tr><tr class="case-row"><td>TC-05</td><td><span class="ti">OTA 镜像校验失败不写入分区</span><span class="sub">scenario=ota · 期望 校验失败被拦截，设备保持原固件运行且不中断联网。</span></td><td><span class="badge p1">P1</span></td><td><div class="cmp"><span class="eq">online True = True</span><span class="ne">ok False → True</span></div></td><td><span class="badge fail">FAIL</span> <span class="sub">0.90</span></td><td><span class="by state">state</span></td></tr><tr class="detail" hidden><td colspan="5"><div class="detail-in"><div class="lbl">判定理由</div><div style="font-size:13px;color:var(--dim)">设备状态与用例预期不一致：ok 期望 False 实际 True</div><div class="lbl">证据</div><div style="font-family:var(--mono);font-size:12px;color:#9CD3FF">STATE screen=home online=True version=1.0.0 ok=True</div><div class="lbl">根因</div><div style="font-size:13px;color:var(--dim)">本次执行的故障注入没有生效，并未出现“校验失败”场景。日志显示设备走的是完整正常升级路径：manifest 下发后下载 100%，随后 &#x27;verify signature=ok crc32=ok target_slot=b&#x27; 与 &#x27;install slot=b ... ota_done&#x27;，说明 OTA mock/服务端实际下发的是与 manifest（crc32=0x8a41f3c2、签名）完全匹配的合法镜像，固件没有任何理由判定失败，因此 STATE.ok 上报 True。即：用例期望的“镜像被篡改、签名或 CRC 不匹配”前置条件未被构造出来，断言失败归因于测试桩/注入手段（下发镜像未篡改或篡改后同步更新了 manifest 的 crc32/signature），而非固件在 verify 失败后误写分区。次要疑点：日志中 verify 结果仅以 &#x27;signature=ok crc32=ok&#x27; 一行输出后即进入 install，缺少 verify 失败分支的 aborts 日志与写入前阻断断言证据，若后续注入生效仍出现 install，则需怀疑校验结果只被记录而未真正门控写入（先 verify 后 erase/write 的顺序问题）。</div><div class="lbl">串口日志</div><pre>[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [wifi] reconnect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=501d49bf8bc3
+[uart] [cloud] state=online heartbeat=30s
+[uart] [ota] check_update current=1.0.0
+[uart] [ota] manifest version=1.1.0 size=1048576 crc32=0x8a41f3c2
+[uart] [ota] download start url=https://ota.example.com/fw/panel-1.1.0.bin chunk=4096
+[uart] [ota] download progress=20%
+[uart] [ota] download progress=40%
+[uart] [ota] download progress=60%
+[uart] [ota] download progress=80%
+[uart] [ota] download progress=100%
+[uart] [ota] verify signature=ok crc32=ok target_slot=b
+[uart] [ota] install slot=b offsets=0x00000000..0x00100000
+[uart] [ota] ota_done
+[uart] [fw] running version=1.0.0 build=2024.05.11
+[uart] [ui] screen=home
+STATE {&quot;screen&quot;: &quot;home&quot;, &quot;online&quot;: true, &quot;version&quot;: &quot;1.0.0&quot;, &quot;ok&quot;: true}</pre></div></td></tr><tr class="case-row"><td>TC-06</td><td><span class="ti">OTA 下载中掉电后回滚到旧固件</span><span class="sub">scenario=ota · 期望 升级中断后设备能回滚启动旧固件，不出现变砖。</span></td><td><span class="badge p1">P1</span></td><td><div class="cmp"><span class="eq">online True = True</span><span class="ne">ok False → True</span></div></td><td><span class="badge fail">FAIL</span> <span class="sub">0.90</span></td><td><span class="by state">state</span></td></tr><tr class="detail" hidden><td colspan="5"><div class="detail-in"><div class="lbl">判定理由</div><div style="font-size:13px;color:var(--dim)">设备状态与用例预期不一致：ok 期望 False 实际 True</div><div class="lbl">证据</div><div style="font-family:var(--mono);font-size:12px;color:#9CD3FF">STATE screen=home online=True version=1.0.0 ok=True</div><div class="lbl">根因</div><div style="font-size:13px;color:var(--dim)">掉电注入未在 OTA 下载窗口内生效，OTA 实际完整下载到 100% 并 install 到 slot=b，未进入“下载中掉电回滚”分支；固件在 ota_done 后即上报 ok=true，且仍运行 1.0.0/active_slot=a，导致状态与用例预期的回滚后 ok=False 不一致。</div><div class="lbl">串口日志</div><pre>[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [wifi] reconnect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=6cc384f0cc53
+[uart] [cloud] state=online heartbeat=30s
+[uart] [ota] check_update current=1.0.0
+[uart] [ota] manifest version=1.1.0 size=1048576 crc32=0x8a41f3c2
+[uart] [ota] download start url=https://ota.example.com/fw/panel-1.1.0.bin chunk=4096
+[uart] [ota] download progress=20%
+[uart] [ota] download progress=40%
+[uart] [ota] download progress=60%
+[uart] [ota] download progress=80%
+[uart] [ota] download progress=100%
+[uart] [ota] verify signature=ok crc32=ok target_slot=b
+[uart] [ota] install slot=b offsets=0x00000000..0x00100000
+[uart] [ota] ota_done
+[uart] [fw] running version=1.0.0 build=2024.05.11
+[uart] [ui] screen=home
+STATE {&quot;screen&quot;: &quot;home&quot;, &quot;online&quot;: true, &quot;version&quot;: &quot;1.0.0&quot;, &quot;ok&quot;: true}</pre></div></td></tr><tr class="case-row"><td>TC-07</td><td><span class="ti">配网超时未收到凭据</span><span class="sub">scenario=provision · 期望 超时后配网会话被释放，设备仍停留在待配网状态等待重试。</span></td><td><span class="badge p1">P1</span></td><td><div class="cmp"><span class="ne">screen provision → home</span><span class="eq">online False = False</span></div></td><td><span class="badge fail">FAIL</span> <span class="sub">0.95</span></td><td><span class="by rule">rule</span></td></tr><tr class="detail" hidden><td colspan="5"><div class="detail-in"><div class="lbl">判定理由</div><div style="font-size:13px;color:var(--dim)">串口日志命中失败信号：system_reset</div><div class="lbl">证据</div><div style="font-family:var(--mono);font-size:12px;color:#9CD3FF">RULE_HIT=system_reset</div><div class="lbl">根因</div><div style="font-size:13px;color:var(--dim)">该用例并不是固件功能缺陷，而是失败判定与用例设计的问题。日志显示配网流程完整成功：已收到凭据、连接 Wi-Fi、进行 DHCP、完成 TLS 握手、云端 auth accepted，并在 ack received elapsed=10.000s 后走到 [prov] done。随后 [sys] system_reset reason=provision_done 是配网成功后设备主动执行的软重启（boot_count=2、reset_reason=software_reset），属预期行为。用例脚本的失败信号把 system_reset 这类关键字一律判为失败，没有结合 reason 字段进行归因，因此产生了误报；同时也暴露 ack 等待阈值 10.0s 与实际 elapsed=10.000s 恰好相等，处于超时判定的竞态边界。</div><div class="lbl">串口日志</div><pre>[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [prov] start transport=ble name=Panel-7F3C
+[uart] [wifi] scan start band=2.4G,5G
+[uart] [wifi] scan done found=3
+[uart] [wifi] ap ssid=SmartHome-5G rssi=-47 auth=WPA2
+[uart] [wifi] ap ssid=SmartHome-2.4G rssi=-58 auth=WPA2
+[uart] [wifi] ap ssid=TP-LINK_9F2A rssi=-71 auth=WPA2
+[uart] [prov] credentials received ssid=SmartHome-5G psk=********
+[uart] [wifi] connect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=b8e492c69c70
+[uart] [cloud] wait_ack timeout=10.0s
+[uart] [cloud] ack received elapsed=10.000s
+[uart] [prov] done device_id=panel-7f3c9a21
+[uart] [sys] system_reset reason=provision_done
+[uart] [boot] power_on reset_reason=software_reset boot_count=2
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [boot] ready
+STATE {&quot;screen&quot;: &quot;home&quot;, &quot;online&quot;: false, &quot;version&quot;: &quot;1.0.0&quot;, &quot;ok&quot;: true}</pre></div></td></tr><tr class="case-row"><td>TC-08</td><td><span class="ti">已配网设备掉线后自动重连</span><span class="sub">scenario=reconnect · 期望 网络恢复后设备自动重连成功，无需重新配网。</span></td><td><span class="badge p1">P1</span></td><td><div class="cmp"><span class="eq">online True = True</span><span class="eq">ok True = True</span></div></td><td><span class="badge pass">PASS</span> <span class="sub">0.90</span></td><td><span class="by state">state</span></td></tr><tr class="detail" hidden><td colspan="5"><div class="detail-in"><div class="lbl">判定理由</div><div style="font-size:13px;color:var(--dim)">设备状态与用例预期一致</div><div class="lbl">证据</div><div style="font-family:var(--mono);font-size:12px;color:#9CD3FF">STATE screen=home online=True version=1.0.0 ok=True</div><div class="lbl">串口日志</div><pre>[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [net] restore profile ssid=SmartHome-5G
+[uart] [wifi] reconnect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=dedc909367d6
+[uart] [cloud] state=online heartbeat=30s
+[uart] [net] link_down detected cause=beacon_lost
+[uart] [wifi] link_down reason=beacon_lost
+[uart] [cloud] state=offline reason=link_down
+[uart] [wifi] reconnect attempt=1 backoff=1s
+[uart] [wifi] reconnect failed attempt=1 reason=assoc_timeout
+[uart] [wifi] reconnect attempt=2 backoff=2s
+[uart] [wifi] reconnect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=50a2a8ecea3e
+[uart] [cloud] state=online heartbeat=30s
+[uart] [net] link_up rssi=-46
+[uart] [ui] screen=home
+STATE {&quot;screen&quot;: &quot;home&quot;, &quot;online&quot;: true, &quot;version&quot;: &quot;1.0.0&quot;, &quot;ok&quot;: true}</pre></div></td></tr><tr class="case-row"><td>TC-09</td><td><span class="ti">OTA 重启后配网凭据持久化</span><span class="sub">scenario=reconnect · 期望 升级重启不会丢失配网信息，设备自动使用原凭据上线。</span></td><td><span class="badge p1">P1</span></td><td><div class="cmp"><span class="eq">online True = True</span><span class="eq">ok True = True</span></div></td><td><span class="badge pass">PASS</span> <span class="sub">0.90</span></td><td><span class="by state">state</span></td></tr><tr class="detail" hidden><td colspan="5"><div class="detail-in"><div class="lbl">判定理由</div><div style="font-size:13px;color:var(--dim)">设备状态与用例预期一致</div><div class="lbl">证据</div><div style="font-family:var(--mono);font-size:12px;color:#9CD3FF">STATE screen=home online=True version=1.0.0 ok=True</div><div class="lbl">串口日志</div><pre>[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [net] restore profile ssid=SmartHome-5G
+[uart] [wifi] reconnect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=0b5f25b4e2f5
+[uart] [cloud] state=online heartbeat=30s
+[uart] [net] link_down detected cause=beacon_lost
+[uart] [wifi] link_down reason=beacon_lost
+[uart] [cloud] state=offline reason=link_down
+[uart] [wifi] reconnect attempt=1 backoff=1s
+[uart] [wifi] reconnect failed attempt=1 reason=assoc_timeout
+[uart] [wifi] reconnect attempt=2 backoff=2s
+[uart] [wifi] reconnect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=407543c5ec3d
+[uart] [cloud] state=online heartbeat=30s
+[uart] [net] link_up rssi=-46
+[uart] [ui] screen=home
+STATE {&quot;screen&quot;: &quot;home&quot;, &quot;online&quot;: true, &quot;version&quot;: &quot;1.0.0&quot;, &quot;ok&quot;: true}</pre></div></td></tr><tr class="case-row"><td>TC-10</td><td><span class="ti">空凭据下发被拒绝</span><span class="sub">scenario=provision · 期望 空凭据被参数校验拒绝，配网流程不进入连接阶段。</span></td><td><span class="badge p1">P2</span></td><td><div class="cmp"><span class="eq">online False = False</span><span class="ne">ok False → True</span></div></td><td><span class="badge fail">FAIL</span> <span class="sub">0.95</span></td><td><span class="by rule">rule</span></td></tr><tr class="detail" hidden><td colspan="5"><div class="detail-in"><div class="lbl">判定理由</div><div style="font-size:13px;color:var(--dim)">串口日志命中失败信号：system_reset</div><div class="lbl">证据</div><div style="font-family:var(--mono);font-size:12px;color:#9CD3FF">RULE_HIT=system_reset</div><div class="lbl">根因</div><div style="font-size:13px;color:var(--dim)">空凭据校验缺失或被绕过：provisioning 收到凭据后未拒绝空字段，仍继续使用有效/缓存凭据发起 Wi-Fi 连接并完成云端配网，最终以 reason=provision_done 触发 system_reset，测试将 system_reset 判为失败信号。</div><div class="lbl">串口日志</div><pre>[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [prov] start transport=ble name=Panel-7F3C
+[uart] [wifi] scan start band=2.4G,5G
+[uart] [wifi] scan done found=3
+[uart] [wifi] ap ssid=SmartHome-5G rssi=-47 auth=WPA2
+[uart] [wifi] ap ssid=SmartHome-2.4G rssi=-58 auth=WPA2
+[uart] [wifi] ap ssid=TP-LINK_9F2A rssi=-71 auth=WPA2
+[uart] [prov] credentials received ssid=SmartHome-5G psk=********
+[uart] [wifi] connect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=666a41fd6207
+[uart] [cloud] wait_ack timeout=10.0s
+[uart] [cloud] ack received elapsed=10.000s
+[uart] [prov] done device_id=panel-7f3c9a21
+[uart] [sys] system_reset reason=provision_done
+[uart] [boot] power_on reset_reason=software_reset boot_count=2
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [boot] ready
+STATE {&quot;screen&quot;: &quot;home&quot;, &quot;online&quot;: false, &quot;version&quot;: &quot;1.0.0&quot;, &quot;ok&quot;: true}</pre></div></td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="bugs">
+    <div class="sec-h"><span class="sec-n">04</span><h2>缺陷：按证据键去重</h2></div>
+    <p class="sec-desc">
+      10 条用例、7 条失败，最终只建了 <b>3 条缺陷</b> —— 因为同一个故障会命中多个用例，
+      平台按「证据键」合并，把受影响的用例挂到同一条 issue 上，而不是刷一堆重复单。
+    </p>
+    <div class="bug"><div class="bug-h"><span class="bug-id">LOCAL-001</span><span class="badge p1">P1</span><span class="chip">open</span></div><div class="bug-t">冷启动未配网时 UI 初始屏幕被硬编码为 home，未进入 provision 配网引导状态</div><div class="bug-m"><span>证据键 <b>state:boot:screen</b></span><span>受影响 <b>1 条</b></span><span>指纹 <b>091dad350b14</b></span></div><div class="chips"><span class="chip info">TC-01</span></div><details><summary>根因分析</summary><p>UI 启动状态机的初始屏幕被硬编码/默认置为 home，缺少“未配网则进入配网引导”的判断分支。冷启动流程中 [ui] 直接输出 screen=home，在 wifi state=disconnected、cloud state=offline 的情况下未触发任何 provision 状态迁移，说明配网入口逻辑（判断 NVS 中是否存有 SSID/配网标志位 → 跳转 provision）在启动序列中被遗漏或条件判断恒为 false（如 provisioned 标志默认初始化为 true，或配网状态读取早于 NVS 初始化完成而返回默认值）。</p></details><details><summary>缺陷正文（Markdown）</summary><pre>## 概要
+
+冷启动（未配网、wifi state=disconnected、cloud state=offline）时，UI 启动状态机直接输出 `screen=home`，未按预期进入 `provision` 待配网状态，导致 TC-01「冷启动进入待配网状态并完成自检」失败。
+
+## 复现步骤
+
+1. 擦除/清空 NVS 中的配网信息（无 SSID、无配网标志）。
+2. 断开 wifi、cloud 处于 offline。
+3. 设备冷启动，观察 `[ui]` 输出的 screen 状态与 `STATE` 报文。
+
+## 实际结果
+
+```
+[ui] screen=home
+```
+
+- 在 `wifi state=disconnected`、`cloud state=offline` 的情况下，启动序列中未触发任何 provision 状态迁移。
+
+## 预期结果
+
+```
+screen=provision
+```
+
+冷启动未配网时应进入配网引导状态并完成自检。
+
+## 根因分析
+
+UI 启动状态机的初始屏幕被硬编码/默认置为 `home`，缺少「未配网则进入配网引导」的判断分支。配网入口逻辑（判断 NVS 中是否存有 SSID/配网标志位 → 跳转 provision）在启动序列中被遗漏，或条件判断恒为 false，可能的成因包括：
+
+- `provisioned` 标志默认初始化为 `true`；
+- 配网状态读取早于 NVS 初始化完成，返回默认值。
+
+## 建议修复
+
+1. 在 UI 启动阶段（wifi/net 模块就绪后）增加显式路由：读取持久化的配网标志与 SSID，若未配网或 wifi 未连接则强制 `screen=provision`，并打印 `[prov] enter reason=...` 便于回归定位。
+2. 检查 `provisioned` 标志的默认值与 NVS 初始化时序，避免读取早于存储就绪。
+3. 为该分支补充启动自检断言与用例覆盖（冷启动未配网 → provision；已配网 → home）。
+4. 在 `STATE` 报文中输出 `provisioned` 字段以便自动化判定。
+
+## 影响
+
+未配网设备冷启动后停留在 home 界面，用户无法进入配网流程，设备不可用；自动化用例 TC-01 及相关启动自检持续失败。
+
+提交方式：auto</pre></details></div><div class="bug"><div class="bug-h"><span class="bug-id">LOCAL-002</span><span class="badge p1">P1</span><span class="chip">open</span></div><div class="bug-t">[TC-02] 配网完成后固件无条件软复位（system_reset reason=provision_done），导致配网成功用例被判失败</div><div class="bug-m"><span>证据键 <b>rule:system_reset:provision</b></span><span>受影响 <b>4 条</b></span><span>指纹 <b>50754973bf0c</b></span></div><div class="chips"><span class="chip info">TC-02</span><span class="chip info">TC-03</span><span class="chip info">TC-07</span><span class="chip info">TC-10</span></div><details><summary>根因分析</summary><p>固件在配网流程完成后无条件执行软复位：日志中 prov done 后立即出现 system_reset reason=provision_done，导致设备重启，测试用例命中失败信号 system_reset，无法保持配网成功后的在线状态。另 cloud ack 在 wait_ack timeout=10.0s 的边界时刻 elapsed=10.000s 才收到，存在超时边界竞争，可能加剧流程异常。</p></details><details><summary>缺陷正文（Markdown）</summary><pre>## 概要
+
+用例 **TC-02 正确凭据配网成功并上线** 执行失败。串口日志命中失败信号 `system_reset`。
+
+根因定位为：固件在配网流程完成后**无条件执行软复位**，日志中 `prov done` 之后立即出现 `system_reset reason=provision_done`，设备随即重启，无法保持配网成功后的在线状态，测试用例因此命中失败信号 `system_reset`。
+
+## 复现步骤
+
+1. 使用正确凭据执行 TC-02 配网流程。
+2. 观察串口日志。
+3. 配网流程完成后设备立即软复位。
+
+## 实际结果
+
+- 串口日志：`prov done` 后立即出现 `system_reset reason=provision_done`。
+- 设备重启，配网成功后的在线状态无法保持。
+- 用例命中失败信号 `system_reset`，判定失败。
+- 附带现象：`cloud ack` 在 `wait_ack timeout=10.0s` 边界时刻 `elapsed=10.000s` 才收到，存在超时边界竞争，可能加剧流程异常。
+
+## 预期结果
+
+- 配网成功后设备保持在线，不应在 `prov done` 后立即复位。
+- cloud ack 应在超时阈值内稳定收到，不出现边界竞争。
+
+## 影响
+
+- 配网成功路径（主流程）不可用 / 用例无法通过。
+- 若为设计预期行为，测试判定逻辑与固件行为不一致，导致误报。
+
+## 建议修复
+
+1. 修改配网完成处理逻辑：不要在 `prov done` 后立即 `system_reset`，应先确认 `cloud online` / 会话稳定并保持连接。
+2. 若复位为必须行为，改为**延迟复位**，或由测试用例在复位后继续等待上线；同时避免将**预期内复位**作为失败信号。
+3. 增大 ack 超时阈值，或修正 `elapsed == timeout` 的边界判定（当前为 `elapsed=10.000s` 恰好等于 `timeout=10.0s`），避免 ACK 在边界时刻到达时触发竞争。
+
+## 环境 / 备注
+
+- 提交方式：auto-filed
+- 相关日志关键字：`prov done`、`system_reset`、`reason=provision_done`、`wait_ack timeout=10.0s`、`elapsed=10.000s`</pre></details></div><div class="bug"><div class="bug-h"><span class="bug-id">LOCAL-003</span><span class="badge p1">P1</span><span class="chip">open</span></div><div class="bug-t">TC-05 OTA 镜像校验失败用例误判：故障注入未生效，实际下发合法镜像导致 STATE.ok=True</div><div class="bug-m"><span>证据键 <b>state:ota:ok</b></span><span>受影响 <b>2 条</b></span><span>指纹 <b>159260c570f2</b></span></div><div class="chips"><span class="chip info">TC-05</span><span class="chip info">TC-06</span></div><details><summary>根因分析</summary><p>本次执行的故障注入没有生效，并未出现“校验失败”场景。日志显示设备走的是完整正常升级路径：manifest 下发后下载 100%，随后 &#x27;verify signature=ok crc32=ok target_slot=b&#x27; 与 &#x27;install slot=b ... ota_done&#x27;，说明 OTA mock/服务端实际下发的是与 manifest（crc32=0x8a41f3c2、签名）完全匹配的合法镜像，固件没有任何理由判定失败，因此 STATE.ok 上报 True。即：用例期望的“镜像被篡改、签名或 CRC 不匹配”前置条件未被构造出来，断言失败归因于测试桩/注入手段（下发镜像未篡改或篡改后同步更新了 manifest 的 crc32/signature），而非固件在 verify 失败后误写分区。次要疑点：日志中 verify 结果仅以 &#x27;signature=ok crc32=ok&#x27; 一行输出后即进入 install，缺少 verify 失败分支的 aborts 日志与写入前阻断断言证据，若后续注入生效仍出现 install，则需怀疑校验结果只被记录而未真正门控写入（先 verify 后 erase/write 的顺序问题）。</p></details><details><summary>缺陷正文（Markdown）</summary><pre>## 概要
+
+执行用例 **TC-05 OTA 镜像校验失败不写入分区** 时断言失败：期望 `STATE.ok == False`，实际 `STATE.ok == True`。
+
+经日志分析，**本次失败并非固件在 verify 失败后误写分区，而是故障注入未生效**——OTA mock/服务端实际下发的是与 manifest 完全匹配的合法镜像，设备走了完整正常升级路径。用例前置条件（镜像被篡改 / 签名或 CRC 不匹配）未构造出来，属于测试桩缺陷（导致用例误报），需修复注入手段，同时补充固件侧可观测性与门控证据。
+
+## 复现信息
+
+- 用例：TC-05 OTA 镜像校验失败不写入分区
+- 触发方式：auto（CI 自动执行）
+- 期望：`STATE.ok == False`（verify 失败、升级中止、slot=b 未被写入）
+- 实际：`STATE.ok == True`（升级成功完成）
+
+## 关键日志
+
+```
+manifest 下发 -&gt; download 100%
+verify signature=ok crc32=ok target_slot=b
+install slot=b ... ota_done
+STATE.ok=True
+```
+
+manifest 声明的镜像属性为 `crc32=0x8a41f3c2` 且携带签名；日志显示校验结果 `signature=ok crc32=ok`，说明下发的镜像与 manifest 一致，固件无任何理由判定失败，故上报 `ok=True` 属预期行为。
+
+## 根因分析
+
+**主因（测试桩/注入手段）**
+
+1. OTA mock 或服务端下发的镜像未被篡改；或篡改镜像后同步更新了 manifest 中的 `crc32` / `signature`，导致期望的“校验失败”场景实际不存在。
+2. 用例未对“verify 失败分支”日志（fail + abort 关键字）做断言，无法在注入失效时快速区分“注入没生效”与“固件没拦住”。
+
+**次要疑点（待后续验证，非本次定因）**
+
+3. 日志中 verify 结果仅一行 `signature=ok crc32=ok` 后即进入 install，缺少 verify 失败分支的 abort 日志，也无“写入前阻断”的直接证据。若后续注入生效后仍出现 `install`，则需怀疑校验结果仅被记录而未真正门控写入（verify 与 erase/write 的执行顺序问题）。
+
+## 修复建议
+
+1. **修复故障注入**：让 OTA mock 下发与 manifest 不一致的镜像，例如翻转首字节、截断至 `&lt;size`、返回错误 crc32，或使用与 manifest 公钥不匹配的签名，确保 verify 必然失败；用例中断言日志必须出现 `verify fail` 与 `abort` 关键字。
+2. **固件侧增强可观测性与门控**：verify 失败必须打印 `[ota] verify fail reason=signature|crc32 abort` 并直接 `return`，禁止进入 erase/write；`install` 置于 verify 成功分支之后；slot=b 写入前增加分区写保护/长度上限检查。
+3. **STATE 增加字段**：`ota_result` / `ota_stage`（如 `verify_fail`、`aborted`、`slot_written=false`），便于自动化断言，避免仅靠 `ok` 字段判断。
+4. **补充“不写入”的直接证据**：OTA 前后读取 slot=b 头部哈希或全 `0xFF` 状态，断言未被擦写。
+5. **复位后校验启动流程**：覆盖 bootloader 对 slot 的二次校验，验证“校验失败镜像永不启动”的端到端场景。
+
+## 验收标准
+
+- 修复后重跑 TC-05：日志出现 `verify fail reason=... abort`，`STATE.ok=False`，`STATE.ota_stage=aborted`。
+- OTA 前后 slot=b 头部哈希不变（或保持全 `0xFF`），证明未发生擦写。
+- 注入失效时可被用例自身断言显式识别（避免再次出现同类误判）。
+
+## 影响范围
+
+- 当前 TC-05 结论不可信（假失败，掩盖真实校验门控风险）。
+- 若存在同类依赖镜像篡改注入的 OTA 负向用例，需一并排查注入逻辑。</pre></details></div>
+  </section>
+
+  <section>
+    <div class="sec-h"><span class="sec-n">05</span><h2>证据：屏幕快照 + 串口日志</h2></div>
+    <p class="sec-desc">
+      真实设备这里是 adb screencap 出的 PNG；模拟设备把状态渲染成文本快照，供人读与日志比对。
+      两者在判定链路里同一条路径，换成真机不用改下游逻辑。
+    </p>
+    <div class="shots"><div class="shot"><div class="shot-h"><span class="badge fail">FAIL</span><span>TC-01 · 冷启动进入待配网状态并完成自检</span></div><pre>+------------------------------+
+|  智能中控屏 · 屏幕快照        |
++------------------------------+
+| 界面状态 : home              |
+| 云端连接 : 离线              |
+| 固件版本 : 1.0.0             |
+| 自检结论 : 正常              |
++------------------------------+
+
+--- uart ---
+[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [ui] screen=home ready
+[uart] [boot] ready
+STATE {&quot;screen&quot;: &quot;home&quot;, &quot;online&quot;: false, &quot;version&quot;: &quot;1.0.0&quot;, &quot;ok&quot;: true}
+</pre></div><div class="shot"><div class="shot-h"><span class="badge pass">PASS</span><span>TC-04 · OTA 正常升级到新固件</span></div><pre>+------------------------------+
+|  智能中控屏 · 屏幕快照        |
++------------------------------+
+| 界面状态 : home              |
+| 云端连接 : 在线              |
+| 固件版本 : 1.0.0             |
+| 自检结论 : 正常              |
++------------------------------+
+
+--- uart ---
+[uart] [boot] power_on reset_reason=power_on boot_count=1
+[uart] [boot] bootloader v1.2.0 active_slot=a
+[uart] [fw] version=1.0.0 build=2024.05.11
+[uart] [hw] display=10.1in_1280x800 touch=gt911
+[uart] [ui] screen=home
+[uart] [net] wifi state=disconnected
+[uart] [cloud] state=offline
+[uart] [wifi] reconnect ssid=SmartHome-5G auth=WPA2
+[uart] [wifi] assoc_ok bssid=3c:84:6a:1f:22:0b channel=44
+[uart] [wifi] dhcp request
+[uart] [wifi] ip=192.168.31.86 gw=192.168.31.1 dns=192.168.31.1 rssi=-46
+[uart] [cloud] connect endpoint=mqtts://iot.example.com:8883
+[uart] [cloud] tls handshake ok cipher=TLS_AES_128_GCM_SHA256
+[uart] [cloud] auth request device_id=panel-7f3c9a21 fw=1.0.0
+[uart] [cloud] auth accepted session=8eb1a700fc58
+[uart] [cloud] state=online heartbeat=30s
+[uart] [ota] check_update current=1.0.0
+[uart] [ota] manifest version=1.1.0 size=1048576 crc32=0x8a41f3c2
+[uart] [ota] download start url=https://ota.example.com/fw/panel-1.1.0.bin chunk=4096
+[uart] [ota] download progress=20%
+[uart] [ota] download progress=40%
+[uart] [ota] download progress=60%
+[uart] [ota] download progress=80%
+[uart] [ota] download progress=100%
+[uart] [ota] verify signature=ok crc32=ok target_slot=b
+[uart] [ota] install slot=b offsets=0x00000000..0x0010</pre></div></div>
+  </section>
+
+  <section>
+    <div class="sec-h"><span class="sec-n">06</span><h2>技术构成</h2></div>
+    <p class="sec-desc">核心链路零第三方依赖，一个 Python 解释器就能跑；需要的能力都用适配器接出去。</p>
+    <div class="stack">
+      <div class="st"><h4>Runtime</h4><p><b>Python 3</b>，标准库 urllib 直连模型，<b>零第三方依赖</b>。构建产物 23.3 KB，sha256 <code style="font-family:var(--mono);font-size:11.5px">45a725fcceffd4fc</code></p></div>
+      <div class="st"><h4>Model</h4><p><b>DeepSeek deepseek-flash</b>（OpenAI 兼容协议）。实测支持图像输入，所以文本与视觉可共用一个 Key；换成 vLLM / Ollama 只改环境变量。</p></div>
+      <div class="st"><h4>Adapters</h4><p>设备 <b>sim-unpack</b>（Mock / Sim / ADB / 串口）、构建 zip 或 docker、缺陷落本地 JSON 或 GitHub Issue。当前部署目标 mock-device-01。</p></div>
+      <div class="st"><h4>Service</h4><p>FastAPI webhook（<code style="font-family:var(--mono);font-size:11.5px">/webhook/github</code>、<code style="font-family:var(--mono);font-size:11.5px">/runs</code>），可选安装；纯 CLI 也能全流程跑。</p></div>
+    </div>
+    <div class="cmds">
+      <div class="cmd"><code>python -m aqa demo</code><span>零依赖、零 Key，跑完整十层（内置模板产品）</span></div>
+      <div class="cmd"><code>python -m aqa demo --model-mode api --buggy</code><span>真模型写产品 + 故意留缺陷，演示发现→归因→建单</span></div>
+      <div class="cmd"><code>python -m aqa run --mock</code><span>纯回归：不生成产品，只测已有提交</span></div>
+      <div class="cmd"><code>python tools/make_report.py</code><span>把任意一次运行渲染成这份 HTML</span></div>
+    </div>
+  </section>
+
+  <footer>
+    <div>
+      <div>本地项目：<code>C:\Users\Administrator\ai-qa-platform</code></div>
+      <div style="margin-top:5px">运行产物：<code>runs/20261108-182052-1d453e/</code></div>
+    </div>
+    <div style="text-align:right">
+      <div>仓库：<a href="https://github.com/w18341840753-cell/ai-qa-platform" target="_blank" rel="noopener">w18341840753-cell/ai-qa-platform</a></div>
+      <div style="margin-top:5px">生成于 2026-11-08 19:57 · 数据来自磁盘产物</div>
+    </div>
+  </footer>
+
+</div>
+<script>
+document.querySelectorAll('tr.case-row').forEach(function (row) {
+  row.addEventListener('click', function () {
+    var next = row.nextElementSibling;
+    if (next && next.classList.contains('detail')) next.hidden = !next.hidden;
+  });
+});
+</script>
+</body>
+</html>
