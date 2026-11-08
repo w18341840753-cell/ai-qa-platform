@@ -130,10 +130,15 @@ python -m aqa serve --port 8080
 
 两个必配项，少一个就会出问题：
 
-- **`AQA_WEBHOOK_SECRET`**：不配则接口完全开放，任何人知道地址就能反复触发流水线、烧模型额度。
-  配了之后走 `X-Hub-Signature-256` 的 HMAC 校验，伪造签名返回 401。
+- **`AQA_WEBHOOK_SECRET`**：不配则 `/webhook/github` **拒绝所有请求**（fail-closed），
+  服务能启动但 webhook 不可用；启动日志会报 error。配了之后走 `X-Hub-Signature-256` 的 HMAC 校验，
+  伪造签名返回 401。仅本地演示可显式设 `AQA_ALLOW_OPEN_WEBHOOK=1` 开放，公网务必关闭。
 - **`AQA_SOURCE_DIR`**：webhook 只告诉你「哪个仓库、哪个 commit」，代码要自己 checkout。
   不配就退回工作目录，构建会把 `runs/` 一起压进固件（实测 1.7GB 卡死，现已加目录过滤和 50MB 上限）。
+
+其它安全默认值：`aqa serve` 只监听 `127.0.0.1`（公网请用 nginx 反代）；同一
+`X-GitHub-Delivery` 10 分钟内只处理一次；默认每来源每分钟最多 20 次触发（`AQA_RATE_LIMIT_PER_MIN`）；
+配置 `AQA_API_TOKEN` 后，`/runs` 读接口需要带 `X-AQA-Token`。
 
 完整的云服务器部署步骤（买机器 / Docker / Nginx / HTTPS / webhook 配置）见 **[deploy/README.md](deploy/README.md)**。
 

@@ -8,7 +8,7 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir "fastapi>=0.110" "uvicorn[standard]>=0.27"
+RUN pip install --no-cache-dir "fastapi>=0.110,<1.0" "uvicorn[standard]>=0.27,<1.0"
 
 COPY aqa ./aqa
 COPY tools ./tools

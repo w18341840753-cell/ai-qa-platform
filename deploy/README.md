@@ -154,11 +154,17 @@ curl https://你的域名/runs/<run_key>
 
 ## 三、上线前必须知道的三件事
 
-**1. 不配 `AQA_WEBHOOK_SECRET` 等于把接口敞开**
+**1. 不配 `AQA_WEBHOOK_SECRET` 时接口默认关闭**
 
-`/webhook/github` 不验签时，任何人只要知道地址就能反复触发流水线，每跑一次烧一次模型额度。
-服务端已实现 `X-Hub-Signature-256` 的 HMAC 校验（`aqa/api.py`），配了 secret 后伪造签名返回 401；
-没配时启动日志会打印警告，`/healthz` 也会返回 `signature_required: false`。
+`/webhook/github` 现在是 **fail-closed**：没配 secret 直接返回 401，启动日志会报 error。
+`/healthz` 会返回 `signature_required: false`、`open_webhook: false`，便于确认状态。
+只有本地演示需要显式设 `AQA_ALLOW_OPEN_WEBHOOK=1` 才放行 —— 此时任何人都能触发流水线、
+每跑一次烧一次模型额度，公网必须关掉。
+
+另外两层默认防护：`aqa serve` 只监听 `127.0.0.1`（对外交给同机 nginx）；同一
+`X-GitHub-Delivery` 10 分钟内只处理一次，重复投递直接返回 `{"duplicate": true}`；
+每个来源每分钟最多 20 次触发（`AQA_RATE_LIMIT_PER_MIN`，0 关闭）。
+`/runs` 读接口建议设置 `AQA_API_TOKEN`，之后请求需带 `X-AQA-Token`。
 
 **2. 必须配 `AQA_SOURCE_DIR`**
 
