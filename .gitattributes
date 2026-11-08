@@ -1,0 +1,4 @@
+# 统一换行符，避免 Windows 检出后在 CI 上产生 diff 噪声
+* text=auto eol=lf
+*.png binary
+*.zip binary

@@ -1,0 +1,19 @@
+# 运行产物（每次 run 的构建物、截图、日志）
+runs/
+.aqa/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# 配置与密钥
+.env
+
+# 编辑器
+.vscode/
+.idea/
+.DS_Store

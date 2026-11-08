@@ -1,0 +1,15 @@
+{
+  "ref": "refs/heads/main",
+  "after": "9f3c1a7b2e5d48c9a0f1",
+  "repository": {
+    "full_name": "demo/smart-panel"
+  },
+  "pusher": {
+    "name": "dev-lisi"
+  },
+  "changed_files": [
+    "src/net/provision.c",
+    "src/ota/upgrade.c",
+    "app/ui/home_screen.c"
+  ]
+}

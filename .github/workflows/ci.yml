@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: 单元测试 / Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: 运行测试
+        run: python -m unittest discover -s tests -v
+
+  demo:
+    name: AI 原生链路演示
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      # 无需任何 API Key：mock 模型 + 内置产品模板 + 模拟设备真实执行
+      - name: 生成产品 → 打包 → 部署 → 测试 → 报告
+        run: python -m aqa demo
+
+      - name: 上传测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aqa-report
+          path: |
+            runs/*/report.md
+            runs/*/report.json
+            runs/*/verdicts.json
+            runs/*/bugs.json
+            runs/*/product/**
+          retention-days: 14
+
+      - name: 汇总到 Job Summary
+        if: always()
+        run: |
+          {
+            echo "## 自动化测试结果"
+            echo ""
+            cat runs/*/report.md || echo "无报告生成"
+          } >> "$GITHUB_STEP_SUMMARY"
