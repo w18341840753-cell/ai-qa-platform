@@ -58,12 +58,14 @@ class MockPipelineTest(unittest.TestCase):
     def test_same_root_cause_is_deduped_across_runs(self) -> None:
         first_ctx, _ = Orchestrator(_settings(self.ws)).run(repo="demo/panel", quiet=True)
         first_bugs = json.loads((first_ctx.artifacts / "bugs.json").read_text(encoding="utf-8"))
-        self.assertEqual(len([b for b in first_bugs if not b.get("deduped")]), 2)
+        self.assertEqual(len(first_bugs), 2, "两个不同证据键应各建一条缺陷")
+        self.assertTrue(all(b["created_this_run"] for b in first_bugs))
 
         second_ctx, _ = Orchestrator(_settings(self.ws)).run(repo="demo/panel", quiet=True)
         second_bugs = json.loads((second_ctx.artifacts / "bugs.json").read_text(encoding="utf-8"))
-        self.assertEqual(len([b for b in second_bugs if not b.get("deduped")]), 0,
-                         "同一根因第二次运行不应重复建缺陷")
+        self.assertEqual(len(second_bugs), 2, "第二轮仍是同样两条缺陷")
+        self.assertFalse(any(b["created_this_run"] for b in second_bugs),
+                         "同一证据键第二次运行不应重复建缺陷")
 
     def test_judge_flags_injected_defects(self) -> None:
         ctx, _ = Orchestrator(_settings(self.ws)).run(repo="demo/panel", quiet=True)
@@ -73,6 +75,11 @@ class MockPipelineTest(unittest.TestCase):
         for v in verdicts:
             if v["verdict"] == "FAIL":
                 self.assertIn("root_cause", v.get("rca", {}))
+        # 日志里有硬故障信号的用例走规则短路，其余仍交给视觉模型
+        self.assertEqual(
+            {v["case_id"]: v["judged_by"] for v in verdicts},
+            {"TC-01": "vision", "TC-02": "rule", "TC-03": "rule", "TC-04": "vision"},
+        )
 
 
 class DemoPipelineTest(unittest.TestCase):

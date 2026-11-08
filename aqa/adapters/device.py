@@ -8,8 +8,6 @@
 
 from __future__ import annotations
 
-import json
-import random
 import shutil
 import subprocess
 import sys
@@ -19,6 +17,8 @@ import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from .. import contract
 
 
 @dataclass
@@ -31,6 +31,10 @@ class Trace:
     screenshot: Path | None = None
     logs: str = ""
     hint: str = ""          # 视觉线索（真实实现里由 VLM 从截图里读，mock 里预置）
+    state: dict[str, Any] = field(default_factory=dict)   # 归一化后的设备状态
+    contract_ok: bool = True                              # 状态是否满足契约
+    skipped: bool = False                                 # 设备能力不支持，未执行
+    skip_reason: str = ""
     duration_s: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
@@ -41,6 +45,10 @@ class Trace:
             "screenshot": str(self.screenshot) if self.screenshot else None,
             "logs": self.logs,
             "hint": self.hint,
+            "state": self.state,
+            "contract_ok": self.contract_ok,
+            "skipped": self.skipped,
+            "skip_reason": self.skip_reason,
             "duration_s": round(self.duration_s, 2),
         }
 
@@ -64,6 +72,28 @@ class DeviceAdapter:
 
     def teardown(self) -> None:
         pass
+
+    # ------------------------------------------------------------ 能力声明
+
+    def capabilities(self) -> dict[str, Any]:
+        """设备能跑哪些场景、能否注入故障。
+
+        测试设计必须知道这台设备能干到哪一步：跑不了「错误凭据 / 掉电」这类
+        需要外部注入的用例，就该标成未执行，而不是拿「跑的是正常路径」当失败。
+        AdbDevice / SerialDevice 给 "*" —— 它们按步骤驱动，不按场景枚举。
+        """
+        return {"scenarios": ("*",), "injection": True}
+
+    def supports(self, case: dict[str, Any]) -> tuple[bool, str]:
+        caps = self.capabilities()
+        scenarios = tuple(caps.get("scenarios") or ())
+        scenario = str(case.get("scenario", "")).strip().lower()
+
+        if "*" not in scenarios and scenario and scenario not in scenarios:
+            return False, f"设备只支持 {', '.join(scenarios)} 场景，用例要求 {scenario}"
+        if case.get("needs_injection") and not caps.get("injection", False):
+            return False, "设备不支持故障注入（错误凭据 / 掉电 / 坏镜像等）"
+        return True, ""
 
 
 # ---------------------------------------------------------------- Mock 设备
@@ -89,6 +119,10 @@ class MockDevice(DeviceAdapter):
     def prepare(self) -> dict[str, Any]:
         time.sleep(0.05)
         return {"device": self.device_id, "mode": "mock", "ready": True}
+
+    def capabilities(self) -> dict[str, Any]:
+        # mock 本身是缺陷剧本，什么场景都能「跑」，也等于支持注入
+        return {"scenarios": ("boot", "provision", "ota", "reconnect"), "injection": True}
 
     def deploy(self, artifact: dict[str, Any]) -> dict[str, Any]:
         time.sleep(0.15)
@@ -143,13 +177,8 @@ class MockDevice(DeviceAdapter):
 
 
 def _parse_state(stdout: str) -> dict[str, Any]:
-    for line in reversed(stdout.splitlines()):
-        if line.startswith("STATE "):
-            try:
-                return json.loads(line[6:])
-            except json.JSONDecodeError:
-                return {}
-    return {}
+    """解析 STATE 行，并归一化到设备状态契约（容忍 fw_version 等别名）。"""
+    return contract.extract_state(stdout)
 
 
 def _display_width(text: str) -> int:
@@ -168,10 +197,16 @@ def _render_screen(state: dict[str, Any], logs: str) -> str:
     真实设备这里是 PNG 截图；模拟环境用文本渲染，便于人读与日志比对。
     接入真实设备时把这里换成 adb screencap / 相机抓图即可，下游判定逻辑不变。
     """
-    screen = state.get("screen", "unknown")
+    screen = str(state.get("screen", "unknown"))
     online = "在线" if state.get("online") else "离线"
     version = state.get("version", "?")
-    health = "故障" if "ERROR" in logs or screen in ("boot_loop", "ota_failed") else "正常"
+    missing = state.get("_contract", {}).get("missing", [])
+    if "ERROR" in logs or screen in contract.BAD_SCREENS:
+        health = "故障"
+    elif missing:
+        health = f"状态契约缺字段（{','.join(missing)}）"
+    else:
+        health = "正常"
     line = "+" + "-" * 30 + "+\n"
     return (
         line
@@ -213,6 +248,10 @@ class SimDevice(DeviceAdapter):
 
     def prepare(self) -> dict[str, Any]:
         return {"device": self.device_id, "mode": "sim", "python": self.python, "ready": True}
+
+    def capabilities(self) -> dict[str, Any]:
+        # 生成的产品只实现了四个场景入口，没法执行「错误凭据 / 掉电」这类注入用例
+        return {"scenarios": ("boot", "provision", "ota", "reconnect"), "injection": False}
 
     def deploy(self, artifact: dict[str, Any]) -> dict[str, Any]:
         src = Path(artifact.get("path", ""))
@@ -286,11 +325,15 @@ class SimDevice(DeviceAdapter):
         trace.logs = (stdout.strip() or stderr.strip())[:4000]
         trace.screenshot = screen_path
         trace.steps.append(f"scenario={scenario} exit={exit_code}")
+        trace.state = state
+        trace.contract_ok = contract.is_usable(state)
         trace.hint = (
             f"screen={state.get('screen', 'unknown')} "
             f"online={state.get('online')} version={state.get('version')} "
             f"product_ok={state.get('ok')}"
         )
+        if not trace.contract_ok:
+            trace.hint += " | 状态契约不通过：" + "；".join(contract.violations(state))
         trace.ok_to_proceed = exit_code == 0
         trace.duration_s = time.time() - started
         if exit_code != 0:

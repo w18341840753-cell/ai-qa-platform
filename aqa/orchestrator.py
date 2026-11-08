@@ -170,5 +170,10 @@ class Orchestrator:
         if "pass_rate" in result:
             return f"通过率 {result['pass_rate']}%"
         if "verdicts" in result:
-            return f"PASS {result.get('passed')} / FAIL {result.get('failed')}"
+            brief = f"PASS {result.get('passed')} / FAIL {result.get('failed')}"
+            if result.get("inconclusive"):
+                brief += f" / 无法判定 {result['inconclusive']}"
+            if result.get("skipped"):
+                brief += f" / 未执行 {result['skipped']}"
+            return brief
         return ""

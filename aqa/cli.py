@@ -66,6 +66,15 @@ def _cmd_demo(args: argparse.Namespace) -> int:
         settings.model_mode = args.model_mode
     if args.requirement:
         settings.product_requirement = args.requirement
+    if args.buggy:
+        # 演示「被测版本确实有缺陷」时的完整闭环：让 AI 把缺陷写进产品，
+        # 再看平台能不能靠日志与设备状态把它们找出来。
+        settings.product_requirement += (
+            "\n\n【重要】这个版本是待测版本，请保留以下两处真实缺陷，不要修复、"
+            "也不要在日志里声明这是缺陷：\n"
+            "1) 配网：不区分正确/错误凭据，等待云端 ACK 10 秒后直接 system_reset 重启；\n"
+            "2) OTA：打印 ota_done，但从不真正切换固件版本，version 始终为初始版本。"
+        )
 
     orch = Orchestrator(settings)
     ctx, outcomes = orch.run(repo=args.repo or "demo/ai-generated-firmware", commit="auto", quiet=False)
@@ -111,6 +120,11 @@ def main(argv: list[str] | None = None) -> int:
     demo.add_argument("--model-mode", choices=["mock", "api"], default="mock")
     demo.add_argument("--requirement", default="", help="自定义产品需求描述")
     demo.add_argument("--repo", default="", help="报告里显示的仓库名")
+    demo.add_argument(
+        "--buggy",
+        action="store_true",
+        help="让 AI 在生成的产品里保留两处真实缺陷，用于演示缺陷发现闭环",
+    )
     demo.set_defaults(func=_cmd_demo)
 
     args = parser.parse_args(argv)

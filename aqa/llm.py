@@ -1,7 +1,7 @@
 """模型客户端：纯标准库实现 OpenAI 兼容协议，mock 模式零依赖可跑。
 
 分工（重要）：
-  - TextModel   → 测试计划设计、失败归因、bug 描述撰写（DeepSeek-V3 等文本模型）
+  - TextModel   → 测试计划设计、失败归因、bug 描述撰写（deepseek-flash 等文本模型）
   - VisionModel → 看设备截图 / 相机画面，判断界面状态是否正确（Qwen-VL 等视觉模型）
 """
 
@@ -20,6 +20,46 @@ from typing import Any
 
 class LLMError(RuntimeError):
     """模型调用失败（网络 / 鉴权 / 返回结构异常）。"""
+
+
+# ---------------------------------------------------------------- 用量计量
+
+
+@dataclass
+class Usage:
+    """累计 token 用量，用于在报告里给出真实成本，而不是靠感觉估。"""
+
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    calls: int = 0
+
+    def add(self, payload: dict[str, Any] | None) -> None:
+        self.calls += 1
+        if not payload:
+            return
+        self.prompt_tokens += int(payload.get("prompt_tokens") or 0)
+        self.completion_tokens += int(payload.get("completion_tokens") or 0)
+
+    def merge(self, other: "Usage") -> None:
+        self.prompt_tokens += other.prompt_tokens
+        self.completion_tokens += other.completion_tokens
+        self.calls += other.calls
+
+    def cost(self, price_in: float, price_out: float) -> float:
+        """price_in / price_out 单位：元每百万 token。"""
+        return (
+            self.prompt_tokens / 1_000_000 * price_in
+            + self.completion_tokens / 1_000_000 * price_out
+        )
+
+    def to_dict(self, price_in: float = 0.0, price_out: float = 0.0) -> dict[str, Any]:
+        return {
+            "calls": self.calls,
+            "prompt_tokens": self.prompt_tokens,
+            "completion_tokens": self.completion_tokens,
+            "total_tokens": self.prompt_tokens + self.completion_tokens,
+            "cost_cny": round(self.cost(price_in, price_out), 4),
+        }
 
 
 # ---------------------------------------------------------------- JSON 兜底解析
@@ -46,11 +86,22 @@ def extract_json(raw: str) -> dict[str, Any]:
 class OpenAICompatClient:
     """适配任何 OpenAI 兼容端点：DeepSeek、DashScope（通义千问）、vLLM 本地部署等。"""
 
-    def __init__(self, base_url: str, api_key: str, model: str, timeout: int = 120) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str,
+        model: str,
+        timeout: int = 120,
+        max_tokens: int = 2048,
+        json_mode: bool = False,
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
+        self.max_tokens = max_tokens
+        self.json_mode = json_mode
+        self.usage = Usage()
 
     def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
         req = urllib.request.Request(
@@ -71,27 +122,64 @@ class OpenAICompatClient:
         except (urllib.error.URLError, TimeoutError) as exc:
             raise LLMError(f"无法连接模型端点 {self.base_url}：{exc}") from exc
 
-    def chat(self, messages: list[dict[str, Any]], temperature: float = 0.2) -> str:
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        temperature: float = 0.2,
+        max_tokens: int | None = None,
+    ) -> str:
+        budget = max_tokens or self.max_tokens
         payload = {
             "model": self.model,
             "messages": messages,
             "temperature": temperature,
             "stream": False,
+            "max_tokens": budget,
         }
+        if self.json_mode:
+            payload["response_format"] = {"type": "json_object"}
         data = self._post(payload)
+        self.usage.add(data.get("usage"))
+
         try:
-            return data["choices"][0]["message"]["content"]
+            choice = data["choices"][0]
+            message = choice.get("message") or {}
         except (KeyError, IndexError) as exc:
             raise LLMError(f"返回结构异常：{json.dumps(data)[:400]}") from exc
+
+        content = (message.get("content") or "").strip()
+        reasoning = message.get("reasoning_content") or ""
+        finish = choice.get("finish_reason") or "unknown"
+
+        # 被截断的输出必然是残 JSON / 残代码，返回它只会让下游报「解析失败」，
+        # 在这里就说清楚，让调用方有机会重试或换策略。
+        if finish == "length" and content:
+            raise LLMError(
+                f"模型 {self.model} 输出被截断（finish_reason=length，max_tokens={budget}，"
+                f"已输出 {len(content)} 字）：请调大 AQA_MAX_TOKENS 或把任务拆小"
+            )
+        if content:
+            return content
+
+        # 推理模型（deepseek-flash / v4-pro）会先把 token 花在思考上，
+        # 预算给小了就会出现 content 为空 —— 这里要把原因说清楚，而不是返回空串。
+        detail = (
+            f"模型 {self.model} 返回空内容（finish_reason={finish}，"
+            f"max_tokens={budget}，思考内容 {len(reasoning)} 字）"
+        )
+        if finish == "length" or reasoning:
+            detail += "：推理模型的思考过程把 max_tokens 耗尽了，请调大 AQA_MAX_TOKENS"
+        raise LLMError(detail)
 
 
 class ApiTextModel:
     def __init__(self, client: OpenAICompatClient) -> None:
         self.client = client
 
-    def complete(self, system: str, prompt: str) -> str:
+    def complete(self, system: str, prompt: str, max_tokens: int | None = None) -> str:
         return self.client.chat(
-            [{"role": "system", "content": system}, {"role": "user", "content": prompt}]
+            [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+            max_tokens=max_tokens,
         )
 
 
@@ -133,7 +221,7 @@ class MockTextModel:
     def __init__(self) -> None:
         self.calls: list[str] = []
 
-    def complete(self, system: str, prompt: str) -> str:
+    def complete(self, system: str, prompt: str, max_tokens: int | None = None) -> str:
         self.calls.append(prompt[:60])
         time.sleep(0.05)  # 模拟网络往返
 
@@ -263,6 +351,16 @@ class Models:
     text: Any
     vision: Any
     mode: str
+    text_client: Any = None
+    vision_client: Any = None
+
+    def usage(self, price_in: float = 0.0, price_out: float = 0.0) -> dict[str, Any]:
+        """汇总两侧模型用量，用于报告里的成本核算。"""
+        total = Usage()
+        for client in (self.text_client, self.vision_client):
+            if client is not None:
+                total.merge(client.usage)
+        return total.to_dict(price_in, price_out)
 
 
 def build_models(settings: Any) -> Models:
@@ -270,14 +368,24 @@ def build_models(settings: Any) -> Models:
         return Models(text=MockTextModel(), vision=MockVisionModel(), mode="mock")
 
     text_client = OpenAICompatClient(
-        settings.text_base_url, settings.text_api_key, settings.text_model, settings.model_timeout
+        settings.text_base_url,
+        settings.text_api_key,
+        settings.text_model,
+        settings.model_timeout,
+        max_tokens=settings.max_tokens_text,
+        json_mode=True,  # 文本侧三处调用（计划/归因/bug）都要求 JSON
     )
     vision_client = OpenAICompatClient(
         settings.vision_base_url,
         settings.vision_api_key,
         settings.vision_model,
         settings.model_timeout,
+        max_tokens=settings.max_tokens_vision,
     )
     return Models(
-        text=ApiTextModel(text_client), vision=ApiVisionModel(vision_client), mode="api"
+        text=ApiTextModel(text_client),
+        vision=ApiVisionModel(vision_client),
+        mode="api",
+        text_client=text_client,
+        vision_client=vision_client,
     )
