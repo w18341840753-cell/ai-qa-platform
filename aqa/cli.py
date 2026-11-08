@@ -37,7 +37,8 @@ def _cmd_run(args: argparse.Namespace) -> int:
     if args.event:
         event = json.loads(Path(args.event).read_text(encoding="utf-8"))
 
-    repo_dir = Path(args.repo_dir or ".").resolve()
+    # 没显式指定就让编排器按 AQA_SOURCE_DIR 走；默认 "." 会静默盖掉配置
+    repo_dir = Path(args.repo_dir).resolve() if args.repo_dir else None
     orch = Orchestrator(settings)
     ctx, outcomes = orch.run(
         event=event, repo=args.repo or "", commit=args.commit or "", repo_dir=repo_dir

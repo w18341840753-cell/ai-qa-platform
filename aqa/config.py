@@ -116,8 +116,9 @@ class Settings:
             text_key if vision_base == text_base else ""
         )
         source = _env("AQA_SOURCE_DIR")
+        workspace = _env("AQA_WORKSPACE")
         return cls(
-            workspace=root,
+            workspace=Path(workspace) if workspace else root,
             source_dir=Path(source) if source else None,
             max_artifact_mb=int(_env("AQA_MAX_ARTIFACT_MB", "50")),
             model_mode=_env("AQA_MODEL_MODE", "mock"),

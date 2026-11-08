@@ -1,0 +1,28 @@
+# 云服务器上的一键部署：docker compose up -d --build
+#
+# 注意两件事：
+# 1. .env 不会被提交（见 .gitignore），密钥只在服务器上手动创建一次
+# 2. 端口默认只绑 127.0.0.1：由同机的 nginx 反代对外，避免把服务直接暴露在公网
+services:
+  aqa:
+    build: .
+    image: aqa-platform:latest
+    container_name: aqa-platform
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      AQA_SOURCE_DIR: /app/checkout
+      AQA_WORKSPACE: /app
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./runs:/app/runs
+      - ./.aqa:/app/.aqa
+      # 被测试的代码放这里（git clone 下来的仓库）
+      - ./checkout:/app/checkout
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

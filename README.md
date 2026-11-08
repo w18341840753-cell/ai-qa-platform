@@ -2,6 +2,8 @@
 
 面向**嵌入式 / IoT 设备**的 AI 原生自动化测试平台。
 
+🔗 **在线回放**：<https://w18341840753-cell.github.io/ai-qa-platform/> —— 一次真模型运行的可视化报告（十层耗时、逐用例判定、缺陷、屏幕快照）
+
 一句话：**从一句需求开始，AI 写出产品代码 → 打包 → 烧到设备 → 自己设计测试 → 执行 → 判定 → 出报告 → 提 bug → 确认闭环。**
 
 ```
@@ -116,13 +118,24 @@ AQA_DEVICE_KIND=sim
 
 新增设备类型只需实现 `aqa/adapters/device.py` 里 `DeviceAdapter` 的五个方法。
 
-## Webhook 服务
+## Webhook 服务（部署到公网）
 
 ```bash
 pip install fastapi uvicorn
+export AQA_WEBHOOK_SECRET=$(openssl rand -hex 32)
+export AQA_SOURCE_DIR=/path/to/checkout     # 被测试代码的 checkout 目录
 python -m aqa serve --port 8080
-# GitHub 仓库 Settings → Webhooks → http://<host>:8080/webhook/github
+# GitHub 仓库 Settings → Webhooks → https://<host>/webhook/github（Secret 同上）
 ```
+
+两个必配项，少一个就会出问题：
+
+- **`AQA_WEBHOOK_SECRET`**：不配则接口完全开放，任何人知道地址就能反复触发流水线、烧模型额度。
+  配了之后走 `X-Hub-Signature-256` 的 HMAC 校验，伪造签名返回 401。
+- **`AQA_SOURCE_DIR`**：webhook 只告诉你「哪个仓库、哪个 commit」，代码要自己 checkout。
+  不配就退回工作目录，构建会把 `runs/` 一起压进固件（实测 1.7GB 卡死，现已加目录过滤和 50MB 上限）。
+
+完整的云服务器部署步骤（买机器 / Docker / Nginx / HTTPS / webhook 配置）见 **[deploy/README.md](deploy/README.md)**。
 
 ## 目录结构
 

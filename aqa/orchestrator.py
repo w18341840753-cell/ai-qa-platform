@@ -76,7 +76,10 @@ class Orchestrator:
             artifacts=artifacts,
             data={"event": event or {}},
         )
-        rt = self._runtime(repo_dir or Path.cwd())
+        # 源码目录优先级：显式传入 → 配置的 checkout 目录 → 当前工作目录。
+        # webhook 场景一定要配 AQA_SOURCE_DIR，否则会把平台自己的产物目录当源码。
+        source = repo_dir or self.settings.source_dir or Path.cwd()
+        rt = self._runtime(source)
 
         if not quiet:
             print(f"\n{'=' * 68}")
