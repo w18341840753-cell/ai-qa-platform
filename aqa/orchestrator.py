@@ -28,6 +28,14 @@ class StageOutcome:
     error: str = ""
 
 
+def _say(message: str) -> None:
+    """进度输出绝不允许影响流水线结果：编码失败就丢弃这一行。"""
+    try:
+        print(message)
+    except Exception:  # noqa: BLE001 - 控制台编码问题不是阶段失败
+        pass
+
+
 class Orchestrator:
     def __init__(self, settings: Settings, stages: list[Stage] | None = None) -> None:
         self.settings = settings
@@ -82,11 +90,11 @@ class Orchestrator:
         rt = self._runtime(source)
 
         if not quiet:
-            print(f"\n{'=' * 68}")
-            print(f" AI-Native QA  |  run {run_id}")
-            print(f" 仓库 {ctx.repo}  提交 {ctx.commit}  设备 {self.settings.device_kind}")
-            print(f" 模型 {rt.models.mode}  产物 {artifacts}")
-            print(f"{'=' * 68}")
+            _say(f"\n{'=' * 68}")
+            _say(f" AI-Native QA  |  run {run_id}")
+            _say(f" 仓库 {ctx.repo}  提交 {ctx.commit}  设备 {self.settings.device_kind}")
+            _say(f" 模型 {rt.models.mode}  产物 {artifacts}")
+            _say(f"{'=' * 68}")
 
         outcomes: list[StageOutcome] = []
         aborted = False
@@ -99,31 +107,39 @@ class Orchestrator:
             attempts = 0
             started = time.time()
             last_error = ""
-            while attempts <= self.settings.max_retries:
+            max_attempts = (
+                stage.retry_attempts
+                if stage.retry_attempts is not None
+                else self.settings.max_retries + 1
+            )
+            while attempts < max_attempts:
                 attempts += 1
                 try:
                     result = stage.run(ctx, rt)
-                    ctx.data[stage.name] = result
-                    elapsed = time.time() - started
-                    ctx.log(stage.name, "ok", f"第 {attempts} 次尝试成功", elapsed_s=round(elapsed, 2))
-                    outcomes.append(StageOutcome(stage.name, stage.label, True, attempts, elapsed))
-                    if not quiet:
-                        print(f"[{index}/{len(self.stages)}] {stage.label:<8} ✅ "
-                              f"{self._brief(result)}  ({elapsed:.2f}s)")
-                    break
                 except Exception as exc:  # noqa: BLE001 - 统一收集失败信息
                     last_error = f"{type(exc).__name__}: {exc}"
-                    ctx.log(stage.name, "retry" if attempts <= self.settings.max_retries else "failed", last_error)
-                    if attempts <= self.settings.max_retries:
+                    will_retry = attempts < max_attempts
+                    ctx.log(stage.name, "retry" if will_retry else "failed", last_error)
+                    if will_retry:
                         if not quiet:
-                            print(f"[{index}/{len(self.stages)}] {stage.label:<8} ↻ 重试 {attempts}/"
-                                  f"{self.settings.max_retries}：{last_error[:90]}")
+                            _say(f"[{index}/{len(self.stages)}] {stage.label:<8} ↻ 重试 {attempts}/"
+                                 f"{max_attempts - 1}：{last_error[:90]}")
                         time.sleep(min(2 ** (attempts - 1), 5))
+                    continue
+
+                ctx.data[stage.name] = result
+                elapsed = time.time() - started
+                ctx.log(stage.name, "ok", f"第 {attempts} 次尝试成功", elapsed_s=round(elapsed, 2))
+                outcomes.append(StageOutcome(stage.name, stage.label, True, attempts, elapsed))
+                if not quiet:
+                    _say(f"[{index}/{len(self.stages)}] {stage.label:<8} ✅ "
+                         f"{self._brief(result)}  ({elapsed:.2f}s)")
+                break
             else:
                 elapsed = time.time() - started
                 outcomes.append(StageOutcome(stage.name, stage.label, False, attempts, elapsed, last_error))
                 if not quiet:
-                    print(f"[{index}/{len(self.stages)}] {stage.label:<8} ❌ 失败：{last_error[:120]}")
+                    _say(f"[{index}/{len(self.stages)}] {stage.label:<8} ❌ 失败：{last_error[:120]}")
                 # 执行层失败仍要出报告；其余关键层失败则中止
                 if stage.name in ("trigger", "build", "deploy", "plan"):
                     aborted = True
@@ -144,16 +160,16 @@ class Orchestrator:
 
         if not quiet:
             failed = [o for o in outcomes if not o.ok]
-            print(f"{'-' * 68}")
-            print(f" 结果：{'✅ 全链路通过' if not failed else '❌ 存在失败阶段'}")
-            print(f" 报告：{artifacts / 'report.md'}")
+            _say(f"{'-' * 68}")
+            _say(f" 结果：{'✅ 全链路通过' if not failed else '❌ 存在失败阶段'}")
+            _say(f" 报告：{artifacts / 'report.md'}")
             if (artifacts / "bugs.json").exists():
                 bugs = json.loads((artifacts / "bugs.json").read_text(encoding="utf-8"))
                 if bugs:
-                    print(f" 缺陷：{len(bugs)} 条")
+                    _say(f" 缺陷：{len(bugs)} 条")
                     for bug in bugs:
-                        print(f"   - {bug.get('id')} {bug.get('title')}  [{bug.get('status')}]")
-            print(f"{'=' * 68}\n")
+                        _say(f"   - {bug.get('id')} {bug.get('title')}  [{bug.get('status')}]")
+            _say(f"{'=' * 68}\n")
 
         return ctx, outcomes
 

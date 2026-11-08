@@ -35,9 +35,33 @@ class Runtime:
 class Stage:
     name = "stage"
     label = "阶段"
+    # 整阶段最多尝试几次；None 表示沿用 settings.max_retries + 1。
+    # 模型驱动阶段设 1：失败已由 complete_json 在单次调用内部重试，
+    # 再整阶段重发只会把同一段提示词多打几遍、白烧 token。
+    retry_attempts: int | None = None
 
     def run(self, ctx: RunContext, rt: Runtime) -> dict[str, Any]:  # pragma: no cover
         raise NotImplementedError
+
+
+def complete_json(
+    model: Any,
+    system: str,
+    prompt: str,
+    attempts: int = 2,
+    validate: Any = None,
+) -> dict[str, Any]:
+    """调文本模型、解析 JSON 并可选校验；任何一步失败都在调用内重试。"""
+    last_error: Exception | None = None
+    for _ in range(max(1, attempts)):
+        try:
+            payload = extract_json(model.complete(system, prompt))
+            if validate is not None and not validate(payload):
+                raise ValueError("模型输出未通过校验")
+            return payload
+        except Exception as exc:  # noqa: BLE001 - 模型抖动、非法 JSON、校验失败都值得重试
+            last_error = exc
+    raise RuntimeError(f"模型调用或 JSON 解析失败：{last_error}")
 
 
 # 改了生成/计划提示词或产物结构时递增，让旧缓存自然失效
@@ -74,6 +98,7 @@ class ProductStage(Stage):
 
     name = "product"
     label = "AI 生成产品代码"
+    retry_attempts = 1
 
     def run(self, ctx: RunContext, rt: Runtime) -> dict[str, Any]:
         out_dir = ctx.artifacts / "product"
@@ -235,6 +260,7 @@ PLAN_SYSTEM = (
 class PlanStage(Stage):
     name = "plan"
     label = "AI 设计测试"
+    retry_attempts = 1
 
     def run(self, ctx: RunContext, rt: Runtime) -> dict[str, Any]:
         trigger = ctx.data.get("trigger", {})
@@ -274,10 +300,12 @@ class PlanStage(Stage):
             f"不要因为设备能力不足就省略或改写用例：如实标注 needs_injection，"
             f"平台会把当前设备跑不了的用例标成「未执行」，而不是判失败。"
         )
-        raw = rt.models.text.complete(PLAN_SYSTEM, prompt)
-        plan = extract_json(raw)
-        if not plan.get("cases"):
-            raise RuntimeError("测试计划为空，模型输出不可用")
+        plan = complete_json(
+            rt.models.text,
+            PLAN_SYSTEM,
+            prompt,
+            validate=lambda payload: bool(payload.get("cases")),
+        )
         for idx, case in enumerate(plan["cases"], 1):
             case.setdefault("id", f"TC-{idx:02d}")
             case.setdefault("priority", "P1")
