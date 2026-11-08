@@ -35,6 +35,12 @@ class Settings:
     # 工作目录：所有产物写入 <workspace>/runs/<run_id>/
     workspace: Path = field(default_factory=lambda: Path.cwd())
 
+    # 被测试源码目录（webhook / run 模式）。留空则用工作目录，
+    # 但工作目录如果是平台自己，构建会把 runs/ 一起打进去（实测能压出 1.7G）。
+    source_dir: Path | None = None
+    # 单次构建产物体积上限，超过直接报错而不是把磁盘写满
+    max_artifact_mb: int = 50
+
     # 模型：mock = 零依赖离线演示；api = 调真实模型
     model_mode: str = "mock"
     text_base_url: str = "https://api.deepseek.com/v1"
@@ -83,10 +89,25 @@ class Settings:
     require_human_confirm: bool = True   # 提 bug 后是否要人工确认
     auto_confirm_in_demo: bool = True    # mock 模式下自动确认，演示完整闭环
 
+    # 产物缓存：同一 commit 重复跑时跳过重新生成/重新设计
+    cache_enabled: bool = True
+    cache_dir: Path | None = None
+
+    def __post_init__(self) -> None:
+        self.workspace = Path(self.workspace)
+        if self.source_dir is not None:
+            self.source_dir = Path(self.source_dir)
+        self.cache_dir = (
+            Path(self.cache_dir)
+            if self.cache_dir is not None
+            else self.workspace / ".aqa" / "cache"
+        )
+
     @classmethod
     def from_env(cls, workspace: Path | None = None) -> "Settings":
         root = workspace or Path.cwd()
         load_dotenv(root / ".env")
+        cache_dir = _env("AQA_CACHE_DIR")
         text_base = _env("AQA_TEXT_BASE_URL", "https://api.deepseek.com/v1")
         text_key = _env("AQA_TEXT_API_KEY")
         vision_base = _env("AQA_VISION_BASE_URL", text_base)
@@ -94,8 +115,11 @@ class Settings:
         vision_key = _env("AQA_VISION_API_KEY") or (
             text_key if vision_base == text_base else ""
         )
+        source = _env("AQA_SOURCE_DIR")
         return cls(
             workspace=root,
+            source_dir=Path(source) if source else None,
+            max_artifact_mb=int(_env("AQA_MAX_ARTIFACT_MB", "50")),
             model_mode=_env("AQA_MODEL_MODE", "mock"),
             text_base_url=text_base,
             text_api_key=text_key,
@@ -123,6 +147,8 @@ class Settings:
             max_retries=int(_env("AQA_MAX_RETRIES", "2")),
             require_human_confirm=_env_bool("AQA_REQUIRE_HUMAN_CONFIRM", True),
             auto_confirm_in_demo=_env_bool("AQA_AUTO_CONFIRM", True),
+            cache_enabled=_env_bool("AQA_CACHE", True),
+            cache_dir=Path(cache_dir) if cache_dir else None,
         )
 
     def validate(self) -> None:

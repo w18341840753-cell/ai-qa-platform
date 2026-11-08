@@ -14,6 +14,7 @@ from . import contract
 from .adapters.bugtracker import BugTracker
 from .adapters.build import BuildAdapter
 from .adapters.device import DeviceAdapter, Trace
+from .cache import ArtifactCache
 from .context import RunContext
 from .generator import MockProductGenerator, build_generator, list_files
 from .llm import Models, extract_json
@@ -39,7 +40,24 @@ class Stage:
         raise NotImplementedError
 
 
+# 改了生成/计划提示词或产物结构时递增，让旧缓存自然失效
+CACHE_VERSION = "1"
+
+
 # ---------------------------------------------------------------- 0. AI 生成产品代码
+
+
+def _contract_record(check: dict[str, Any], repair_files: list[str]) -> dict[str, Any]:
+    """把契约探针结果收敛成 product.json 里的稳定摘要。"""
+    return {
+        "ok": check["ok"],
+        "summary": contract.describe(check),
+        "entry_command": check.get("command"),
+        "exit_code": check.get("exit_code"),
+        "missing": check.get("missing", []),
+        "state": check.get("state", {}),
+        "repair_files": repair_files,
+    }
 
 
 class ProductStage(Stage):
@@ -51,6 +69,7 @@ class ProductStage(Stage):
 
     api 模式下若最终仍不可用（缺 main.py / 非法 JSON），自动降级到内置模板，
     保证流水线不会因为「AI 写代码失败」而整轮白跑 —— 但降级事实会记录在产物里。
+    同一 (repo, commit, 需求, 模型) 命中缓存时直接复用，省掉整次生成调用。
     """
 
     name = "product"
@@ -58,6 +77,38 @@ class ProductStage(Stage):
 
     def run(self, ctx: RunContext, rt: Runtime) -> dict[str, Any]:
         out_dir = ctx.artifacts / "product"
+        cache = ArtifactCache(rt.settings)
+        key = cache.key(
+            CACHE_VERSION,
+            ctx.repo,
+            ctx.commit,
+            rt.settings.product_requirement,
+            rt.settings.text_model,
+        )
+
+        cached = cache.get_json("product", key)
+        if cached is not None and cache.get_dir("product", key, out_dir):
+            payload = dict(cached)
+            payload["path"] = str(out_dir)
+            payload["cached"] = True
+            # 契约探针照跑：contract.py 升级后旧缓存也必须重新验收
+            check = contract.probe(
+                out_dir, python=sys.executable, timeout=min(rt.settings.case_timeout, 60)
+            )
+            previous = payload.get("contract")
+            repair_files = (
+                list(previous.get("repair_files") or ())
+                if isinstance(previous, dict)
+                else []
+            )
+            payload["contract"] = _contract_record(check, repair_files)
+            payload["file_count"] = len(payload.get("files", []))
+            ctx.save("product.json", payload)
+            ctx.log(self.name, "ok", "命中 product 缓存")
+            if not check["ok"]:
+                ctx.log(self.name, "warn", f"产品状态契约不通过，判定层将按无法判定处理：{payload['contract']['summary']}")
+            return payload
+
         generator = build_generator(rt.models, rt.settings)
         try:
             product = generator.generate(rt.settings.product_requirement, out_dir)
@@ -87,16 +138,12 @@ class ProductStage(Stage):
 
         payload = product.to_dict()
         payload["file_count"] = len(payload.get("files", []))
-        payload["contract"] = {
-            "ok": check["ok"],
-            "summary": contract.describe(check),
-            "entry_command": check.get("command"),
-            "exit_code": check.get("exit_code"),
-            "missing": check.get("missing", []),
-            "state": check.get("state", {}),
-            "repair_files": repair_files,
-        }
+        payload["contract"] = _contract_record(check, repair_files)
         ctx.save("product.json", payload)
+        if check["ok"]:
+            # 只缓存通过契约验收的产品，避免把坏产物固化成「正确答案」
+            cache.put_dir("product", key, Path(product.path))
+            cache.put_json("product", key, payload)
         if not check["ok"]:
             ctx.log(self.name, "warn", f"产品状态契约不通过，判定层将按无法判定处理：{payload['contract']['summary']}")
         return payload
@@ -192,6 +239,27 @@ class PlanStage(Stage):
     def run(self, ctx: RunContext, rt: Runtime) -> dict[str, Any]:
         trigger = ctx.data.get("trigger", {})
         caps = rt.device.capabilities()
+        cache = ArtifactCache(rt.settings)
+        key = cache.key(
+            CACHE_VERSION,
+            trigger.get("repo") or ctx.repo,
+            trigger.get("commit") or ctx.commit,
+            sorted(str(item) for item in (trigger.get("changed_files") or ())),
+            rt.settings.device_kind,
+            rt.settings.device_id,
+            list(caps.get("scenarios") or ()),
+            bool(caps.get("injection")),
+            rt.settings.text_model,
+        )
+
+        cached = cache.get_json("plan", key)
+        if cached is not None:
+            plan = dict(cached)
+            plan["cached"] = True
+            ctx.save("testplan.json", plan)
+            ctx.log(self.name, "ok", "命中 plan 缓存")
+            return plan
+
         scenarios = ", ".join(caps.get("scenarios") or ())
         prompt = (
             f"请为本次提交设计测试计划（test_plan）。\n"
@@ -220,6 +288,7 @@ class PlanStage(Stage):
             else:
                 case.pop("expect_state", None)
         ctx.save("testplan.json", plan)
+        cache.put_json("plan", key, plan)
         return plan
 
 
